@@ -1,0 +1,35 @@
+# Core LLM & orchestration
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-community>=0.3.0
+langgraph>=0.2.0
+openai>=1.50.0
+
+# Vector DB & embeddings
+chromadb>=0.5.0
+
+# Document parsing
+pypdf>=4.0.0
+python-docx>=1.1.0
+markdown>=3.6
+
+# Data validation & models
+pydantic>=2.8.0
+pydantic-settings>=2.4.0
+
+# State persistence
+aiosqlite>=0.20.0
+
+# Utilities
+python-dotenv>=1.0.0
+tiktoken>=0.7.0
+tenacity>=9.0.0
+
+# Export
+weasyprint>=62.0
+jinja2>=3.1.0
+
+# Dev
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
+rich>=13.0.0

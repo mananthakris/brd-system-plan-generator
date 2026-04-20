@@ -1,0 +1,163 @@
+<svg width="100%" viewBox="0 0 680 900" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>BRD-to-Engineering multi-agent runtime topology (v2)</title>
+  <desc>Runtime flow: BRD ingestion to Orchestrator (with state store) to Planning and Design agent groups (retrieving from RAG pipeline with 8 source types) to Critic with revision loop to HITL gate to output. Solution Architect classifies problem type before designing. Guardrails enforced as cross-cutting concerns. Eval system is separate offline harness not shown here.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- Input -->
+  <g>
+    <rect x="130" y="30" width="180" height="44" rx="8" fill="rgb(68,68,65)" stroke="rgb(180,178,169)" stroke-width="0.5"/>
+    <text x="220" y="47" text-anchor="middle" dominant-baseline="central" fill="rgb(211,209,199)" font-size="14" font-weight="500">Input</text>
+    <text x="220" y="63" text-anchor="middle" dominant-baseline="central" fill="rgb(180,178,169)" font-size="12">BRD + context docs</text>
+  </g>
+  <line x1="220" y1="74" x2="220" y2="100" stroke="rgb(156,154,146)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- BRD Ingestion Layer -->
+  <g>
+    <rect x="30" y="100" width="380" height="50" rx="8" fill="rgb(12,68,124)" stroke="rgb(133,183,235)" stroke-width="0.5"/>
+    <text x="220" y="119" text-anchor="middle" dominant-baseline="central" fill="rgb(181,212,244)" font-size="14" font-weight="500">BRD Ingestion Layer</text>
+    <text x="220" y="137" text-anchor="middle" dominant-baseline="central" fill="rgb(133,183,235)" font-size="12">Parser · Section classifier · Metadata tagger</text>
+  </g>
+  <line x1="220" y1="150" x2="220" y2="180" stroke="rgb(156,154,146)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Orchestrator -->
+  <g>
+    <rect x="80" y="180" width="280" height="44" rx="8" fill="rgb(60,52,137)" stroke="rgb(175,169,236)" stroke-width="0.5"/>
+    <text x="220" y="197" text-anchor="middle" dominant-baseline="central" fill="rgb(206,203,246)" font-size="14" font-weight="500">Orchestrator</text>
+    <text x="220" y="213" text-anchor="middle" dominant-baseline="central" fill="rgb(175,169,236)" font-size="12">Hub-and-spoke · LangGraph</text>
+  </g>
+
+  <!-- State & History Store -->
+  <g>
+    <rect x="450" y="172" width="180" height="60" rx="8" fill="rgb(60,52,137)" stroke="rgb(175,169,236)" stroke-width="0.5"/>
+    <text x="540" y="193" text-anchor="middle" dominant-baseline="central" fill="rgb(206,203,246)" font-size="14" font-weight="500">State &amp; History</text>
+    <text x="540" y="213" text-anchor="middle" dominant-baseline="central" fill="rgb(175,169,236)" font-size="12">Sessions · revisions</text>
+  </g>
+  <!-- Bidirectional Orch ↔ State -->
+  <line x1="365" y1="202" x2="445" y2="202" stroke="rgb(194,192,182)" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+
+  <!-- Orch → Planning container -->
+  <line x1="220" y1="224" x2="220" y2="250" stroke="rgb(156,154,146)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Planning Group container -->
+  <rect x="30" y="250" width="380" height="130" rx="8" fill="none" stroke="rgba(222,220,209,0.3)" stroke-width="0.5" stroke-dasharray="6 3"/>
+  <text x="55" y="266" text-anchor="start" fill="rgb(194,192,182)" font-size="12">Planning group</text>
+
+  <!-- Plan Generator -->
+  <g>
+    <rect x="110" y="276" width="220" height="40" rx="8" fill="rgb(8,80,65)" stroke="rgb(93,202,165)" stroke-width="0.5"/>
+    <text x="220" y="290" text-anchor="middle" dominant-baseline="central" fill="rgb(159,225,203)" font-size="14" font-weight="500">Plan generator</text>
+    <text x="220" y="306" text-anchor="middle" dominant-baseline="central" fill="rgb(93,202,165)" font-size="12">Phases &amp; milestones</text>
+  </g>
+  <line x1="220" y1="316" x2="220" y2="330" stroke="rgb(156,154,146)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Schedule Estimator -->
+  <g>
+    <rect x="110" y="330" width="220" height="40" rx="8" fill="rgb(8,80,65)" stroke="rgb(93,202,165)" stroke-width="0.5"/>
+    <text x="220" y="344" text-anchor="middle" dominant-baseline="central" fill="rgb(159,225,203)" font-size="14" font-weight="500">Schedule estimator</text>
+    <text x="220" y="360" text-anchor="middle" dominant-baseline="central" fill="rgb(93,202,165)" font-size="12">Effort &amp; timeline</text>
+  </g>
+
+  <!-- Planning → Design -->
+  <line x1="220" y1="380" x2="220" y2="400" stroke="rgb(156,154,146)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Design Group container -->
+  <rect x="30" y="400" width="380" height="180" rx="8" fill="none" stroke="rgba(222,220,209,0.3)" stroke-width="0.5" stroke-dasharray="6 3"/>
+  <text x="55" y="416" text-anchor="start" fill="rgb(194,192,182)" font-size="12">Design group</text>
+
+  <!-- Solution Architect -->
+  <g>
+    <rect x="85" y="426" width="270" height="44" rx="8" fill="rgb(99,56,6)" stroke="rgb(239,159,39)" stroke-width="0.5"/>
+    <text x="220" y="443" text-anchor="middle" dominant-baseline="central" fill="rgb(250,199,117)" font-size="14" font-weight="500">Solution Architect</text>
+    <text x="220" y="459" text-anchor="middle" dominant-baseline="central" fill="rgb(239,159,39)" font-size="12">Classify type → Design arch</text>
+  </g>
+  <line x1="220" y1="470" x2="220" y2="480" stroke="rgb(156,154,146)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- PoC Planner -->
+  <g>
+    <rect x="110" y="480" width="220" height="40" rx="8" fill="rgb(8,80,65)" stroke="rgb(93,202,165)" stroke-width="0.5"/>
+    <text x="220" y="494" text-anchor="middle" dominant-baseline="central" fill="rgb(159,225,203)" font-size="14" font-weight="500">PoC Planner</text>
+    <text x="220" y="510" text-anchor="middle" dominant-baseline="central" fill="rgb(93,202,165)" font-size="12">Scope &amp; success criteria</text>
+  </g>
+  <line x1="220" y1="520" x2="220" y2="530" stroke="rgb(156,154,146)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Tech Stack Recommender -->
+  <g>
+    <rect x="110" y="530" width="220" height="40" rx="8" fill="rgb(8,80,65)" stroke="rgb(93,202,165)" stroke-width="0.5"/>
+    <text x="220" y="544" text-anchor="middle" dominant-baseline="central" fill="rgb(159,225,203)" font-size="14" font-weight="500">Tech stack recommender</text>
+    <text x="220" y="560" text-anchor="middle" dominant-baseline="central" fill="rgb(93,202,165)" font-size="12">2–3 options, trade-offs</text>
+  </g>
+
+  <!-- RAG Pipeline (side column) -->
+  <g>
+    <rect x="450" y="250" width="180" height="230" rx="8" fill="rgb(39,80,10)" stroke="rgb(151,196,89)" stroke-width="0.5"/>
+    <text x="540" y="268" text-anchor="middle" dominant-baseline="central" fill="rgb(192,221,151)" font-size="14" font-weight="500">RAG Pipeline</text>
+    <text x="540" y="284" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Chroma vector DB</text>
+    <text x="540" y="306" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Past BRDs</text>
+    <text x="540" y="322" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Plan templates</text>
+    <text x="540" y="338" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Architecture patterns</text>
+    <text x="540" y="354" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Project timelines</text>
+    <text x="540" y="370" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Eng standards</text>
+    <text x="540" y="386" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Tech stack decisions</text>
+    <text x="540" y="402" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">License inventory</text>
+    <text x="540" y="418" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Domain context</text>
+    <text x="540" y="442" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Embed: 3-small</text>
+    <text x="540" y="458" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Top-k: 5, σ: 0.75</text>
+  </g>
+
+  <!-- RAG → Planning (dashed) -->
+  <line x1="450" y1="323" x2="414" y2="323" stroke="rgb(194,192,182)" stroke-width="1" stroke-dasharray="5 3" marker-end="url(#arrow)"/>
+  <text x="432" y="316" text-anchor="middle" fill="rgb(194,192,182)" font-size="12">retrieves</text>
+  <!-- RAG → Design (dashed) -->
+  <line x1="450" y1="475" x2="414" y2="475" stroke="rgb(194,192,182)" stroke-width="1" stroke-dasharray="5 3" marker-end="url(#arrow)"/>
+  <text x="432" y="468" text-anchor="middle" fill="rgb(194,192,182)" font-size="12">retrieves</text>
+
+  <!-- Design → Critic -->
+  <line x1="220" y1="580" x2="220" y2="610" stroke="rgb(156,154,146)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Critic Agent -->
+  <g>
+    <rect x="60" y="610" width="320" height="56" rx="8" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+    <text x="220" y="627" text-anchor="middle" dominant-baseline="central" fill="rgb(245,196,179)" font-size="14" font-weight="500">Critic Agent</text>
+    <text x="220" y="649" text-anchor="middle" dominant-baseline="central" fill="rgb(240,153,123)" font-size="12">Rubric scoring · max 2 cycles</text>
+  </g>
+
+  <!-- Feedback loop: Critic → Orchestrator -->
+  <path d="M60 638 L10 638 L10 202 L80 202" fill="none" stroke="rgba(222,220,209,0.4)" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+  <text x="20" y="595" text-anchor="start" fill="rgb(194,192,182)" font-size="12">revise</text>
+
+  <!-- Critic → HITL -->
+  <line x1="220" y1="666" x2="220" y2="690" stroke="rgb(156,154,146)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- HITL Gate -->
+  <g>
+    <rect x="120" y="690" width="200" height="44" rx="8" fill="rgb(68,68,65)" stroke="rgb(180,178,169)" stroke-width="0.5"/>
+    <text x="220" y="707" text-anchor="middle" dominant-baseline="central" fill="rgb(211,209,199)" font-size="14" font-weight="500">HITL Gate</text>
+    <text x="220" y="723" text-anchor="middle" dominant-baseline="central" fill="rgb(180,178,169)" font-size="12">EM reviews &amp; approves</text>
+  </g>
+  <line x1="220" y1="734" x2="220" y2="754" stroke="rgb(156,154,146)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Output -->
+  <g>
+    <rect x="90" y="754" width="260" height="44" rx="8" fill="rgb(39,80,10)" stroke="rgb(151,196,89)" stroke-width="0.5"/>
+    <text x="220" y="771" text-anchor="middle" dominant-baseline="central" fill="rgb(192,221,151)" font-size="14" font-weight="500">Engineering system plan</text>
+    <text x="220" y="787" text-anchor="middle" dominant-baseline="central" fill="rgb(151,196,89)" font-size="12">Right-sized for problem type</text>
+  </g>
+
+  <!-- Export (optional, dashed sidecar) -->
+  <line x1="350" y1="776" x2="420" y2="776" stroke="rgba(222,220,209,0.4)" stroke-width="1" stroke-dasharray="5 3" marker-end="url(#arrow)"/>
+  <g>
+    <rect x="420" y="754" width="180" height="44" rx="8" fill="none" stroke="rgba(222,220,209,0.3)" stroke-width="0.5" stroke-dasharray="5 3"/>
+    <text x="510" y="771" text-anchor="middle" dominant-baseline="central" fill="rgb(194,192,182)" font-size="12">Export &amp; logging</text>
+    <text x="510" y="787" text-anchor="middle" dominant-baseline="central" fill="rgb(194,192,182)" font-size="12">PDF · MD · Jira (v2)</text>
+  </g>
+
+  <!-- Guardrails strip -->
+  <rect x="30" y="820" width="600" height="64" rx="8" fill="none" stroke="rgba(222,220,209,0.3)" stroke-width="0.5" stroke-dasharray="6 3"/>
+  <text x="340" y="836" text-anchor="middle" dominant-baseline="central" fill="rgb(250,249,245)" font-size="14" font-weight="500">Guardrails (cross-cutting enforcement)</text>
+  <text x="340" y="856" text-anchor="middle" dominant-baseline="central" fill="rgb(194,192,182)" font-size="12">Input validation · Schema compliance · Hallucination detection · Confidentiality</text>
+  <text x="340" y="872" text-anchor="middle" dominant-baseline="central" fill="rgb(194,192,182)" font-size="12">Scope creep · Cross-agent consistency · Output structure</text>
+</svg>
