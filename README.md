@@ -15,44 +15,47 @@ BRD / PRD / RFC
       ↓
   Orchestrator (LangGraph hub-and-spoke)
       ↓
-  Planning group          Design group
-  ├── Plan Generator      ├── Solution Architect (classify → 2-3 competing options + recommendation)
-  └── Schedule Estimator  ├── PoC Planner (conditional)
-                          └── Tech Stack Recommender
+  Planning group              Design group
+  ├── Plan Generator          ├── Solution Architect (classify → 2-3 competing options + recommendation)
+  └── Schedule Estimator      ├── PoC Planner (conditional on problem_type == poc)
+                              └── Tech Stack Recommender
       ↓
-  Critic Agent (rubric scoring, up to 2 revision cycles)
+  Critic Agent (5-dimension rubric, up to 2 revision cycles)
       ↓
-  HITL Gate (EM approval)
+  HITL Gate (Engineering Manager approval via interrupt())
       ↓
-  Engineering System Plan (PDF / Markdown)
+  Output Formatter (executive summary + assembled engineering plan)
 ```
 
-All agents retrieve context from a RAG pipeline (Chroma + `text-embedding-3-small`) seeded with the company's architecture decision records, current stack, team skills, cloud infrastructure docs, and domain knowledge.
+All agents retrieve context from a RAG pipeline (ChromaDB + `text-embedding-3-small`) seeded with Arbor Risk's architecture decisions, current stack, team skills, cloud infrastructure docs, domain knowledge, and compliance standards.
 
 ---
 
 ## Evaluation company: Arbor Risk
 
-A fictional fraud detection and risk decisioning platform serving banks, card issuers, payment processors, and lending platforms. Arbor operates in-house ML models (XGBoost, LightGBM, PyTorch GNN) on AWS, scoring transactions in < 80ms p99 via an ensemble of rules, gradient boosting, and network graph signals.
+A fictional fraud detection and risk decisioning platform serving banks, card issuers, payment processors, and lending platforms. Arbor operates in-house ML models (XGBoost, LightGBM, PyTorch GNN) on AWS, scoring transactions at < 80ms p99.
 
-**Five sample BRDs (in `rag/sources/`):**
-| BRD | Problem type |
+**Tech stack used to seed the RAG knowledge base:**
+
+| Layer | Technologies |
 |---|---|
-| Real-Time Transaction Scoring Engine | new_feature |
-| Velocity Rules Configurator (RuleForge v2) | new_feature |
-| Account Takeover Detection Service | new_feature |
-| Dispute & Chargeback Automation (CaseTrack v2) | new_feature |
-| Model Explainability & Reason Codes | new_feature |
+| Event streaming | Apache Kafka on MSK + Confluent Schema Registry (Avro) |
+| Feature store | Tecton (online: ElastiCache Redis · offline: S3 + Spark) |
+| ML inference | FastAPI on EKS (XGBoost/LightGBM in-memory, p99 < 40ms) |
+| Databases | Aurora PostgreSQL · DynamoDB · ElastiCache Redis |
+| Data platform | Snowflake + dbt · Apache Spark on EMR · Airflow (MWAA) |
+| API | FastAPI (Python 3.12) · Gin (Go) · gRPC |
+| Infrastructure | AWS EKS (Graviton) · Terraform · ArgoCD |
+| Observability | Datadog · Evidently AI |
 
-**Tech stack (used to seed RAG):**
-- Event streaming: Apache Kafka on MSK + Confluent Schema Registry (Avro)
-- Feature store: Tecton (online: ElastiCache Redis · offline: S3 + Spark)
-- ML inference: FastAPI on EKS (XGBoost/LightGBM in-memory, p99 < 40ms)
-- Databases: Aurora PostgreSQL · DynamoDB · ElastiCache Redis
-- Data: Snowflake + dbt · Apache Spark on EMR · Airflow (MWAA)
-- API: FastAPI (Python 3.12) · Gin (Go) · gRPC
-- Infrastructure: AWS EKS (Graviton) · Terraform · ArgoCD
-- Observability: Datadog · Evidently AI · LangSmith
+**Four golden eval BRDs (in `rag/sources/`):**
+
+| BRD | Feature |
+|---|---|
+| `brd_adverse_action_reason_codes.md` | ReasonIQ v1 — FCRA reason code engine |
+| `brd_application_fraud_scoring.md` | ScoreIQ v2 — async scoring pipeline |
+| `brd_first_party_fraud_case_management.md` | CaseTrack v2 — analyst workbench + SAR |
+| `brd_synthetic_identity_detection.md` | IdentityGraph v1 — synthetic identity ML |
 
 ---
 
@@ -61,41 +64,48 @@ A fictional fraud detection and risk decisioning platform serving banks, card is
 ```
 capstone-project/
 ├── agents/
-│   ├── orchestrator.py       # LangGraph graph — full wiring, stub node implementations
-│   ├── planning/             # Phase 2: plan_generator.py, schedule_estimator.py
-│   └── design/               # Phase 2: solution_architect.py, poc_planner.py, tech_stack_recommender.py
+│   ├── orchestrator.py            # LangGraph graph — full wiring + OpenInference AGENT spans
+│   ├── critic.py                  # 5-dimension rubric scorer, triggers revision loop
+│   ├── planning/
+│   │   ├── plan_generator.py      # phased project plan from BRD + RAG context
+│   │   └── schedule_estimator.py  # timeline, risks, assumptions
+│   ├── design/
+│   │   ├── solution_architect.py  # problem classification + 2-3 competing arch options
+│   │   └── tech_stack_recommender.py  # stack recommendations grounded in Arbor's stack
+│   └── output/
+│       └── formatter.py           # executive summary + final plan assembly
 ├── ingestion/
-│   ├── parser.py             # PDF / DOCX / MD → raw text
-│   ├── classifier.py         # GPT-5.4-mini section classifier
-│   ├── tagger.py             # GPT-5.4-mini metadata tagger
-│   └── pipeline.py           # Composed ingestion entry point
+│   ├── parser.py                  # PDF / DOCX / MD / TXT → raw text
+│   ├── classifier.py              # section classifier (FAST_MODEL)
+│   ├── tagger.py                  # metadata tagger (FAST_MODEL)
+│   └── pipeline.py                # composed ingestion entry point
 ├── rag/
-│   ├── pipeline.py           # Chroma client, embed, retrieve
-│   ├── seed.py               # Seed knowledge base from sources/
-│   └── sources/              # RAG knowledge base (Markdown files)
-│       ├── architecture_decisions.md         # 8 Arbor Risk ADRs
-│       ├── current_tools_and_stack.md        # full Arbor stack reference
-│       ├── cloud_infrastructure.md           # AWS topology + SLAs
-│       ├── team_skills.md                    # team composition + gaps
-│       ├── domain_context_fraud_detection.md # fraud domain + regulatory context
-│       ├── fraud_pattern_library.md          # fraud attack patterns + detection signals
-│       ├── compliance_standards.md               # FCRA · ECOA · GLBA · BSA/AML · GDPR · SOC 2
-│       ├── brd_application_fraud_scoring.md      # ScoreIQ v2 — async scoring pipeline
-│       ├── brd_synthetic_identity_detection.md   # IdentityGraph v1 — synthetic identity ML
-│       ├── brd_adverse_action_reason_codes.md    # ReasonIQ v1 — FCRA reason code engine
-│       └── brd_first_party_fraud_case_management.md  # CaseTrack v2 — analyst workbench + SAR
+│   ├── pipeline.py                # ChromaDB client — embed + retrieve
+│   ├── seed.py                    # seed knowledge base from sources/
+│   └── sources/                   # 11 Markdown knowledge base files
+├── evals/
+│   ├── run_golden_brds.py         # run 4 BRDs through full pipeline, create Phoenix dataset
+│   ├── run_experiments.py         # LLM-as-judge via phoenix.client.Client experiments API
+│   ├── run_structural_checks.py   # rule-based checks, no LLM calls
+│   ├── run_phoenix_evals.py       # span diagnostic report
+│   ├── phoenix_evals/
+│   │   └── evaluators.py          # LLM-as-judge prompt templates per agent
+│   └── structural/                # per-agent rule-based check modules
 ├── schemas/
-│   └── models.py             # All Pydantic models + LangGraph GraphState
+│   └── models.py                  # all Pydantic models + LangGraph GraphState
 ├── state/
-│   └── store.py              # SQLite checkpointer, session + revision + HITL audit store
+│   └── store.py                   # SQLite checkpointer, session + HITL audit log
 ├── guardrails/
-│   └── checks.py             # Input validation, injection detection, output schema checks
-├── output/                   # Phase 4: formatter.py, exporter.py
+│   └── checks.py                  # input validation, injection detection, output schema checks
+├── api/
+│   └── server.py                  # FastAPI backend with SSE streaming
+├── frontend/                      # React + Vite + Tailwind UI
 ├── docs/
-│   ├── ARCHITECTURE.md       # Runtime topology with diagram
+│   ├── ARCHITECTURE.md
 │   └── runtime_topology_v2.svg
-├── config.py                 # Pydantic settings (reads .env)
-├── main.py                   # CLI entry point
+├── config.py                      # pydantic-settings (reads .env)
+├── main.py                        # CLI entry point
+├── .env.example                   # copy to .env, set OPENAI_API_KEY
 └── requirements.txt
 ```
 
@@ -103,11 +113,11 @@ capstone-project/
 
 ## Setup
 
-**1. Install dependencies**
+**1. Create virtualenv and install dependencies**
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+python3.12 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -115,71 +125,88 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# Set OPENAI_API_KEY in .env
+# Edit .env — set OPENAI_API_KEY at minimum
 ```
 
-**3. Run the demo**
-
-Ingests the Real-Time Transaction Scoring BRD through the full pipeline:
+**3. Seed the RAG knowledge base**
 
 ```bash
-python main.py --demo
+venv/bin/python -m rag.seed
 ```
 
-**4. Run with your own BRD**
+**4. Run the pipeline**
 
 ```bash
-# From a file (.pdf, .docx, .md, .txt)
-python main.py --brd-file path/to/your_brd.md --title "My Feature"
+# Demo mode (uses built-in BRD)
+venv/bin/python main.py --demo
 
-# From inline text
-python main.py --brd-text "$(cat your_brd.txt)"
+# From a file
+venv/bin/python main.py --brd-file path/to/your_brd.md --title "Feature Name"
 ```
 
-**5. Seed the RAG knowledge base independently**
+**5. Run the UI**
 
 ```bash
-# Seed (idempotent — safe to run multiple times)
-python -m rag.seed
+# Terminal 1 — backend
+venv/bin/python -m uvicorn api.server:app --reload --port 8000
 
-# Reset and rebuild
-python -m rag.seed --reset
+# Terminal 2 — frontend
+cd frontend && npm install && npm run dev
+# Open http://localhost:5173
 ```
 
 ---
 
-## Build phases
+## Eval harness
 
-| Phase | Status | Scope |
+Scores all 6 agents against 4 golden Arbor Risk BRDs through two independent paths.
+
+```bash
+# Terminal 1 — start Phoenix (keep running)
+venv/bin/python -m phoenix.server.main serve
+
+# Terminal 2 — run pipeline + create dataset + run evaluations
+venv/bin/python -m evals.run_golden_brds       # ~2-4 min, creates golden_brd_evals dataset
+venv/bin/python -m evals.run_structural_checks  # rule-based, instant
+venv/bin/python -m evals.run_experiments        # LLM-as-judge, ~20 API calls
+```
+
+Results appear in Phoenix UI at `http://localhost:6006` → Datasets & Experiments → `golden_brd_evals` → Experiments tab. Each experiment run is versioned — re-run after editing a prompt to compare scores directly.
+
+**Evaluators per agent:**
+
+| Agent | LLM-judge rubric | Structural checks |
 |---|---|---|
-| 1 | **Complete** | Skeleton: ingestion, RAG pipeline, schemas, state store, guardrails, LangGraph graph wiring |
-| 2 | Upcoming | Real agent implementations: Plan Generator, Schedule Estimator, Solution Architect, PoC Planner, Tech Stack Recommender |
-| 3 | Upcoming | Critic Agent with rubric scoring; revision loop |
-| 4 | Upcoming | HITL gate (`interrupt()`), output formatter, PDF/MD export |
-| 5 | Upcoming | Guardrails hardening, cross-agent consistency checks |
-| Evals | Later | Offline eval harness against Arbor Risk BRDs; rubric schema defined in `CriticRubric`; decision-engine dimensions (option diversity, constraint satisfaction, recommendation justification, trade-off honesty) planned |
+| plan_generator | brd_coverage · phase_coherence · scope_respect | phase_count · deliverables · scope_boundary |
+| solution_architect | classification_accuracy · options_differentiated · rag_grounding | 2-3 options · unique IDs · valid problem_type |
+| tech_stack_recommender | existing_stack_preference · constraint_respect | options_present · recommended_set · rationale |
+| schedule_estimator | risk_mitigation_quality · assumption_specificity | duration_set · risk_entries · assumptions |
+| critic | feedback_specificity · revision_notes_actionability | all_5_dimensions · scores_in_range |
+| output_formatter | business_clarity · technical_accuracy | exec_summary · sections_complete |
 
 ---
 
 ## Key design decisions
 
-**LangGraph for orchestration** — Native hub-and-spoke topology, built-in state persistence via SQLite checkpointer, `interrupt()` for HITL, and conditional edges for the critic revision loop. No custom loop management.
+**LangGraph for orchestration** — Native hub-and-spoke topology with built-in state persistence (SQLite checkpointer), `interrupt()` for HITL, and conditional edges for the critic revision loop.
 
-**Problem type classification gates the graph** — The Solution Architect classifies the BRD as `greenfield | migration | integration | poc | enhancement` before any design work. This single field controls whether the PoC Planner runs and how the final output is sized.
+**Problem type classification gates the graph** — Solution Architect classifies the BRD as `greenfield | new_feature | migration | integration | poc | enhancement` before any design work. This single field controls whether PoC Planner runs and how the output is sized.
 
-**Dual model strategy** — `gpt-5.4` for Orchestrator, Solution Architect, and Critic (judgment-heavy). `gpt-5.4-mini` for Schedule Estimator, PoC Planner, Tech Stack Recommender (structured output from clear inputs).
+**Dual model strategy** — `ORCHESTRATOR_MODEL` (gpt-5.4) for judgment-heavy agents (Solution Architect, Critic). `AGENT_MODEL` for structured-output agents (Plan Generator, Schedule Estimator, Tech Stack Recommender). `FAST_MODEL` (gpt-5.4-mini) for ingestion classifiers and LLM-as-judge evals.
 
-**RAG retrieval at agent level, not graph level** — Each agent issues its own retrieval query tuned to its task. The Orchestrator does not pre-fetch; agents pull exactly what they need (top-k=5, cosine similarity ≥ 0.75).
+**RAG retrieval at agent level** — Each agent issues its own retrieval query tuned to its task (top-k=5, cosine similarity ≥ 0.75). The Orchestrator does not pre-fetch.
 
-**Critic rubric defined upfront** — `CriticRubric` schema in `schemas/models.py` has 5 scored dimensions (completeness, feasibility, specificity, consistency, scope_fit). This same schema will drive the offline eval harness in a later phase.
+**Critic drives revision** — The Critic scores all upstream outputs on 5 dimensions (completeness, feasibility, specificity, consistency, scope_fit). If `revision_required=true` and `revision_count < MAX_REVISION_CYCLES`, the graph loops back to plan_generator with revision notes.
+
+**OpenInference AGENT spans** — Each orchestrator node wraps its agent call in an explicit OTEL span (`openinference.span.kind=AGENT`) with `input.value` and `output.value` set. This is required for Phoenix to show per-agent traces with populated input/output columns. The eval dataset is created programmatically — Phoenix's "Add to Dataset" UI only processes LLM-kind spans.
 
 ---
 
-## Adding to the RAG knowledge base
+## Extending the RAG knowledge base
 
-Drop any `.md` or `.txt` file into `rag/sources/` and re-run `python -m rag.seed`. File names control the source type assigned in Chroma metadata:
+Drop any `.md` or `.txt` file into `rag/sources/` and re-run `venv/bin/python -m rag.seed`. Filename prefix controls the `source_type` metadata tag in Chroma:
 
-| Filename prefix | Source type |
+| Prefix | Source type |
 |---|---|
 | `architecture_*` | `architecture_decision` |
 | `current_tools_*` | `current_stack` |

@@ -33,3 +33,6 @@ frontend/.vite/
 # IDEs
 .vscode/
 .idea/
+
+# Claude Code project context
+CLAUDE.md
