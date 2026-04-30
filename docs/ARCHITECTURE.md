@@ -37,13 +37,13 @@
 
 | Agent | Model | Reason |
 |---|---|---|
-| Orchestrator | gpt-4o | Routing decisions require full reasoning |
-| Solution Architect | gpt-4o | Classification + architecture design is the most demanding step |
-| Critic | gpt-4o | Rubric scoring needs nuanced judgment |
-| Plan Generator | gpt-4o | Multi-phase planning from ambiguous requirements |
-| Schedule Estimator | gpt-4o-mini | Structured arithmetic given clear phase inputs |
-| PoC Planner | gpt-4o-mini | Constrained, well-defined output format |
-| Tech Stack Recommender | gpt-4o-mini | Retrieval-augmented comparison, structured output |
+| Orchestrator | gpt-5.4| Routing decisions require full reasoning |
+| Solution Architect | gpt-5.4 | Classification + architecture design is the most demanding step |
+| Critic | gpt-5.4 | Rubric scoring needs nuanced judgment |
+| Plan Generator | gpt-5.4 | Multi-phase planning from ambiguous requirements |
+| Schedule Estimator | gpt-5.4-mini | Structured arithmetic given clear phase inputs |
+| PoC Planner | gpt-5.4-mini | Constrained, well-defined output format |
+| Tech Stack Recommender | gpt-5.4-mini | Retrieval-augmented comparison, structured output |
 
 ---
 

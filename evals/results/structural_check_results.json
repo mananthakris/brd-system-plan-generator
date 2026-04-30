@@ -1,0 +1,1474 @@
+[
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "phase_count_in_range",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phase count: 5 (expected 3\u20136)"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "all_phases_have_deliverables",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases missing deliverables: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "all_phases_have_objectives",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases with < 2 objectives: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "duration_bounds",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases with out-of-range duration: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "no_circular_deps",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No circular phase dependencies"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "sequential_phase_numbers",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phase numbers: [1, 2, 3, 4, 5] (expected [1, 2, 3, 4, 5])"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "key_milestones_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Milestone count: 5 (expected 3\u20135)"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "option_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option count: 3 (expected 2\u20133)"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "unique_option_ids",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option IDs: ['A', 'B', 'C']"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "recommended_id_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "recommended_option_id='A', valid ids={'A', 'C', 'B'}"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "all_options_have_components",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with < 2 components: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "all_options_have_integration_points",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options missing integration points: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "problem_type_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "problem_type='enhancement'"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "classification_rationale_nonempty",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Rationale length: 293 chars"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "complexity_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with invalid complexity: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "options_are_differentiated",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option names: ['In-process ScoreIQ module with Aurora-backed catalogue', 'Dedicated synchronous ReasonIQ microservice', 'Asynchronous catalogue snapshot distribution with thin runtime adapter']"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "option_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option count: 3 (expected 2\u20133)"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "recommended_matches_option",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "recommended='In-process ScoreIQ module with Aurora-backed catalogue', option names={'ScoreIQ worker with cached catalogue snapshots and offline promotion pipeline', 'ScoreIQ service with synchronous ReasonIQ lookup service', 'In-process ScoreIQ module with Aurora-backed catalogue'}"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "all_options_have_pros_cons",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with insufficient pros/cons: none"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "effort_mentions_numbers",
+    "passed": false,
+    "score": 0.0,
+    "evidence": "Options with vague effort estimates: ['In-process ScoreIQ module with Aurora-backed catalogue', 'ScoreIQ service with synchronous ReasonIQ lookup service', 'ScoreIQ worker with cached catalogue snapshots and offline promotion pipeline']"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "total_weeks_positive",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_weeks=12"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "engineers_positive",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_engineers=3"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "weeks_less_than_phase_sum",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_weeks=12 vs phase_sum=16 (overlap expected)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "assumptions_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Assumption count: 6 (expected 4\u20136)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "risks_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Risk count: 4 (expected 3\u20135)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "no_vague_assumptions",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Vague assumptions: none"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "all_five_dimensions_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Missing dimensions: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "scores_in_range",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Dimensions with out-of-range scores: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "overall_matches_weighted_formula",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "overall=0.754, expected=0.748, diff=0.006"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "passed_consistent_with_score",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Inconsistent passed flags: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "revision_required_consistent",
+    "passed": false,
+    "score": 0.0,
+    "evidence": "revision_required=True, expected=False"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "revision_notes_when_required",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "revision_notes present"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "feedback_nonempty_per_dimension",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Dimensions with short feedback: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "summary_word_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Word count: 260 (expected 150\u2013300)"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "three_paragraph_structure",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Paragraph count: 3 (expected >= 3)"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "no_bullet_points",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No bullet points found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "no_headers",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No markdown headers found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "mentions_timeline",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Timeline reference found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "plan_id_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "id=953cbac6-e1c4-4996-a47d-6005f40fbcc6"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "all_required_fields_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Missing fields: none"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_adverse_action_reason_codes.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "phase_count_in_range",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phase count: 5 (expected 3\u20136)"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "all_phases_have_deliverables",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases missing deliverables: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "all_phases_have_objectives",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases with < 2 objectives: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "duration_bounds",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases with out-of-range duration: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "no_circular_deps",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No circular phase dependencies"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "sequential_phase_numbers",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phase numbers: [1, 2, 3, 4, 5] (expected [1, 2, 3, 4, 5])"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "key_milestones_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Milestone count: 5 (expected 3\u20135)"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "option_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option count: 3 (expected 2\u20133)"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "unique_option_ids",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option IDs: ['A', 'B', 'C']"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "recommended_id_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "recommended_option_id='A', valid ids={'A', 'C', 'B'}"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "all_options_have_components",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with < 2 components: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "all_options_have_integration_points",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options missing integration points: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "problem_type_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "problem_type='enhancement'"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "classification_rationale_nonempty",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Rationale length: 309 chars"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "complexity_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with invalid complexity: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "options_are_differentiated",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option names: ['Async queue-based scoring service on AWS', 'Extend monolith with internal async execution', 'Managed Step Functions orchestration for scoring']"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "option_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option count: 3 (expected 2\u20133)"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "recommended_matches_option",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "recommended='Async queue-based scoring service on AWS', option names={'Orchestrated step worker using AWS Step Functions with SQS for ingress/dispatch', 'Extend the monolith with internal background jobs and SQS-backed worker thread pool', 'Async queue-based scoring service on AWS'}"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "all_options_have_pros_cons",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with insufficient pros/cons: none"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "effort_mentions_numbers",
+    "passed": false,
+    "score": 0.0,
+    "evidence": "Options with vague effort estimates: ['Async queue-based scoring service on AWS', 'Extend the monolith with internal background jobs and SQS-backed worker thread pool', 'Orchestrated step worker using AWS Step Functions with SQS for ingress/dispatch']"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "total_weeks_positive",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_weeks=11"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "engineers_positive",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_engineers=3"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "weeks_less_than_phase_sum",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_weeks=11 vs phase_sum=15 (overlap expected)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "assumptions_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Assumption count: 6 (expected 4\u20136)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "risks_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Risk count: 5 (expected 3\u20135)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "no_vague_assumptions",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Vague assumptions: none"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "all_five_dimensions_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Missing dimensions: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "scores_in_range",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Dimensions with out-of-range scores: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "overall_matches_weighted_formula",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "overall=0.770, expected=0.763, diff=0.007"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "passed_consistent_with_score",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Inconsistent passed flags: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "revision_required_consistent",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "revision_required=False, expected=False"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "revision_notes_when_required",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "revision not required, notes check skipped"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "feedback_nonempty_per_dimension",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Dimensions with short feedback: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "summary_word_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Word count: 245 (expected 150\u2013300)"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "three_paragraph_structure",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Paragraph count: 3 (expected >= 3)"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "no_bullet_points",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No bullet points found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "no_headers",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No markdown headers found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "mentions_timeline",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Timeline reference found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "plan_id_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "id=3dae55d5-4d14-49d6-bdf0-22fb849d36fe"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "all_required_fields_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Missing fields: none"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_application_fraud_scoring.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "phase_count_in_range",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phase count: 5 (expected 3\u20136)"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "all_phases_have_deliverables",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases missing deliverables: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "all_phases_have_objectives",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases with < 2 objectives: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "duration_bounds",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases with out-of-range duration: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "no_circular_deps",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No circular phase dependencies"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "sequential_phase_numbers",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phase numbers: [1, 2, 3, 4, 5] (expected [1, 2, 3, 4, 5])"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "key_milestones_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Milestone count: 5 (expected 3\u20135)"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "option_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option count: 3 (expected 2\u20133)"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "unique_option_ids",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option IDs: ['A', 'B', 'C']"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "recommended_id_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "recommended_option_id='A', valid ids={'A', 'C', 'B'}"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "all_options_have_components",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with < 2 components: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "all_options_have_integration_points",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options missing integration points: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "problem_type_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "problem_type='new_feature'"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "classification_rationale_nonempty",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Rationale length: 327 chars"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "complexity_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with invalid complexity: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "options_are_differentiated",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option names: ['Extend CaseTrack on Aurora with synchronous SAR + nightly Snowflake sync', 'CaseTrack core + asynchronous SAR and bulk-action workers', 'CQRS-style CaseTrack with Aurora read model for queues']"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "option_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option count: 3 (expected 2\u20133)"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "recommended_matches_option",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "recommended='Extend CaseTrack on Aurora with synchronous SAR + nightly Snowflake sync', option names={'Extend CaseTrack with read-model optimized queue and bulk-action worker', 'Extend CaseTrack on Aurora with synchronous SAR + nightly Snowflake sync', 'CaseTrack + dedicated SAR service behind Aurora'}"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "all_options_have_pros_cons",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with insufficient pros/cons: none"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "effort_mentions_numbers",
+    "passed": false,
+    "score": 0.0,
+    "evidence": "Options with vague effort estimates: ['Extend CaseTrack on Aurora with synchronous SAR + nightly Snowflake sync', 'CaseTrack + dedicated SAR service behind Aurora', 'Extend CaseTrack with read-model optimized queue and bulk-action worker']"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "total_weeks_positive",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_weeks=11"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "engineers_positive",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_engineers=3"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "weeks_less_than_phase_sum",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_weeks=11 vs phase_sum=15 (overlap expected)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "assumptions_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Assumption count: 6 (expected 4\u20136)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "risks_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Risk count: 4 (expected 3\u20135)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "no_vague_assumptions",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Vague assumptions: none"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "all_five_dimensions_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Missing dimensions: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "scores_in_range",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Dimensions with out-of-range scores: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "overall_matches_weighted_formula",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "overall=0.790, expected=0.788, diff=0.002"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "passed_consistent_with_score",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Inconsistent passed flags: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "revision_required_consistent",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "revision_required=False, expected=False"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "revision_notes_when_required",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "revision not required, notes check skipped"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "feedback_nonempty_per_dimension",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Dimensions with short feedback: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "summary_word_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Word count: 253 (expected 150\u2013300)"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "three_paragraph_structure",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Paragraph count: 3 (expected >= 3)"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "no_bullet_points",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No bullet points found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "no_headers",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No markdown headers found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "mentions_timeline",
+    "passed": false,
+    "score": 0.0,
+    "evidence": "No timeline reference in summary"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "plan_id_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "id=3961325c-1f23-49d3-bf73-5fc9c773c869"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "all_required_fields_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Missing fields: none"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_first_party_fraud_case_management.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "phase_count_in_range",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phase count: 5 (expected 3\u20136)"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "all_phases_have_deliverables",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases missing deliverables: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "all_phases_have_objectives",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases with < 2 objectives: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "duration_bounds",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phases with out-of-range duration: none"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "no_circular_deps",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No circular phase dependencies"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "sequential_phase_numbers",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Phase numbers: [1, 2, 3, 4, 5] (expected [1, 2, 3, 4, 5])"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "key_milestones_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Milestone count: 5 (expected 3\u20135)"
+  },
+  {
+    "agent_name": "plan_generator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "option_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option count: 3 (expected 2\u20133)"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "unique_option_ids",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option IDs: ['A', 'B', 'C']"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "recommended_id_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "recommended_option_id='A', valid ids={'A', 'C', 'B'}"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "all_options_have_components",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with < 2 components: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "all_options_have_integration_points",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options missing integration points: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "problem_type_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "problem_type='enhancement'"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "classification_rationale_nonempty",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Rationale length: 301 chars"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "complexity_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with invalid complexity: none"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "options_are_differentiated",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option names: ['Nightly Snowflake feature pipeline + in-process ScoreIQ scorer', 'Independent synthetic identity decisioning microservice', 'Snowflake batch scoring + ScoreIQ lookup overlay']"
+  },
+  {
+    "agent_name": "solution_architect",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "option_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Option count: 3 (expected 2\u20133)"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "recommended_matches_option",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "recommended='Nightly Snowflake feature pipeline + in-process ScoreIQ scorer', option names={'Extend existing application fraud pipeline with a dedicated synthetic identity microservice', 'Offline batch decision augmentation in Snowflake with score handoff to ScoreIQ', 'Nightly Snowflake feature pipeline + in-process ScoreIQ scorer'}"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "all_options_have_pros_cons",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Options with insufficient pros/cons: none"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "effort_mentions_numbers",
+    "passed": false,
+    "score": 0.0,
+    "evidence": "Options with vague effort estimates: ['Nightly Snowflake feature pipeline + in-process ScoreIQ scorer', 'Extend existing application fraud pipeline with a dedicated synthetic identity microservice', 'Offline batch decision augmentation in Snowflake with score handoff to ScoreIQ']"
+  },
+  {
+    "agent_name": "tech_stack_recommender",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "total_weeks_positive",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_weeks=11"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "engineers_positive",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_engineers=4"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "weeks_less_than_phase_sum",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "total_weeks=11 vs phase_sum=13 (overlap expected)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "assumptions_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Assumption count: 6 (expected 4\u20136)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "risks_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Risk count: 4 (expected 3\u20135)"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "no_vague_assumptions",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Vague assumptions: none"
+  },
+  {
+    "agent_name": "schedule_estimator",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "all_five_dimensions_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Missing dimensions: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "scores_in_range",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Dimensions with out-of-range scores: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "overall_matches_weighted_formula",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "overall=0.823, expected=0.820, diff=0.003"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "passed_consistent_with_score",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Inconsistent passed flags: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "revision_required_consistent",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "revision_required=False, expected=False"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "revision_notes_when_required",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "revision not required, notes check skipped"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "feedback_nonempty_per_dimension",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Dimensions with short feedback: none"
+  },
+  {
+    "agent_name": "critic",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "summary_word_count",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Word count: 223 (expected 150\u2013300)"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "three_paragraph_structure",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Paragraph count: 3 (expected >= 3)"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "no_bullet_points",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No bullet points found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "no_headers",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "No markdown headers found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "mentions_timeline",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Timeline reference found"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "plan_id_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "id=15f0aafb-6506-4e85-b717-22a0ddfea477"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "all_required_fields_present",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "Missing fields: none"
+  },
+  {
+    "agent_name": "output_formatter",
+    "brd_file": "brd_synthetic_identity_detection.md",
+    "check_name": "schema_valid",
+    "passed": true,
+    "score": 1.0,
+    "evidence": "AgentOutput schema valid"
+  }
+]

@@ -63,7 +63,7 @@ def _check_prompt_injection(text: str) -> None:
 # ---------------------------------------------------------------------------
 
 _REQUIRED_KEYS_BY_AGENT: dict[str, list[str]] = {
-    "plan_generator": ["phases", "summary"],
+    "plan_generator": ["phases", "project_overview"],
     "schedule_estimator": ["total_weeks", "phases"],
     "solution_architect": ["problem_type", "high_level_components", "data_flow"],
     "poc_planner": ["scope", "success_criteria", "duration_weeks"],

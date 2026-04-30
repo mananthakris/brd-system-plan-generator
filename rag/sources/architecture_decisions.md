@@ -1,103 +1,79 @@
-# Architecture Decision Records — Verdant Intelligence
+# Architecture Decisions — Arbor Risk (Lending Fraud)
 
-## ADR-001: Event-driven ingestion via SQS + Lambda (2022-03)
+## ADR-001: Asynchronous Scoring via SQS + Worker Pool (2022-Q4)
 
-**Status:** Accepted
+**Decision**: Implement application fraud scoring as an asynchronous pipeline — application payload submitted to SQS, worker pool processes bureau pulls and ML inference, result delivered via webhook or polling endpoint.
 
-**Context:** Utility meter data arrives via webhook pushes from Green Button Connect partners (ComEd, ConEd, PG&E). Early architecture polled REST APIs hourly, causing rate-limit errors and stale data windows of up to 90 minutes.
+**Context**: Lending fraud scoring is not on the authorization critical path (unlike card payments). Bureau API calls (Experian, Equifax, TransUnion) take 300ms–1.5s each and introduce variable latency. A synchronous API would either block for 2–4 seconds or timeout under load. Async pattern decouples submission from completion and allows retries on bureau timeouts without impacting the lender's application flow.
 
-**Decision:** Replace polling with an event-driven pipeline. Each utility webhook POST enqueues a message to an SQS FIFO queue. Lambda consumers process in order, deduplicate by meter_id + interval_start, and write to S3 raw bucket before transforming.
-
-**Consequences:**
-- Latency from meter read to database dropped from ~90 min to ~4 min average.
-- Lambda cold starts acceptable at current volume (<2000 meters per customer).
-- At >50k meters per tenant, SQS+Lambda will need replacement with Kinesis Data Streams.
-
-**Tags:** data-ingestion, serverless, utility-api
+**Outcome**: Lender submits application via `POST /v1/score` and receives a `job_id` immediately. Worker picks up from SQS, pulls bureau data, runs ML model, writes result to DynamoDB, and calls lender's webhook. Lender can also poll `GET /v1/score/{job_id}`. p99 end-to-end < 3 seconds under normal bureau API conditions.
 
 ---
 
-## ADR-002: Snowflake as analytical warehouse; PostgreSQL for transactional data (2022-06)
+## ADR-002: Bureau API Response Caching in Redis (2023-Q1)
 
-**Status:** Accepted
+**Decision**: Cache bureau API responses in Redis for 24 hours per applicant identity token.
 
-**Context:** Compliance reporting requires aggregating 15-minute interval data across thousands of meters over multi-year windows. PostgreSQL struggled with query times exceeding 30 seconds for large portfolio reports.
+**Context**: Experian, Equifax, and TransUnion charge per pull. Same applicant reapplying within 24 hours (common in BNPL and personal loan shopping) would otherwise incur duplicate bureau costs. Bureau data does not meaningfully change within a 24-hour window for fraud scoring purposes.
 
-**Decision:** Dual-database strategy:
-- PostgreSQL (RDS Aurora): transactional data — accounts, buildings, meter configs, user settings, audit logs.
-- Snowflake: all time-series energy data, benchmarking aggregates, compliance calculation results.
-
-**Data flow:** Lambda → S3 (raw) → dbt (transform) → Snowflake (served). dbt runs on Airflow DAGs on a 15-min cadence.
-
-**Consequences:**
-- Report query times reduced from 30s → sub-2s for 95th percentile.
-- Introduced dual-write complexity for building metadata (mirrored to Snowflake via CDC).
-- Snowflake cost scales with query volume; added query tagging to identify expensive report types.
-
-**Tags:** data-warehouse, analytics, snowflake, dbt
+**Outcome**: Redis key: `bureau:{bureau}:{identity_token}`. TTL: 24 hours. Cache hit rate ~18% across all pulls (higher for BNPL segment). Estimated annual saving: $240k in bureau costs. Cache invalidated on explicit request (e.g. after fraud investigation clears an identity).
 
 ---
 
-## ADR-003: Reject GraphQL; maintain REST + OpenAPI (2023-01)
+## ADR-003: Snowflake + dbt for Feature Pre-computation (2023-Q2)
 
-**Status:** Accepted
+**Decision**: Pre-compute application fraud features in Snowflake using dbt models rather than a real-time feature store.
 
-**Context:** Frontend team proposed GraphQL to reduce over-fetching in the portfolio dashboard. Compliance export endpoints return deeply nested objects causing N+1 patterns.
+**Context**: Evaluated Tecton (real-time feature store) but the sub-10ms feature serving latency it provides is unnecessary for lending — our scoring target is 3 seconds. Tecton's operational overhead and licensing cost were not justified. Snowflake dbt models compute features nightly (bureau tradeline aggregates, address history, consortium velocity) and write to a feature snapshot table. At scoring time, the worker queries Snowflake directly for pre-computed features and combines with real-time bureau pull.
 
-**Decision:** Rejected GraphQL due to:
-1. Team has no GraphQL production experience; learning curve for 2-person backend team deemed too high.
-2. Existing REST clients (property management system integrations) can't be migrated without breaking changes.
-3. Problem is better solved with response shaping (sparse fieldsets) and smarter pagination.
-
-**Alternative implemented:** Added `?fields=` query param support to top 5 most-called endpoints. Reduced payload sizes by 60–70% on dashboard calls.
-
-**Tags:** api-design, rest, graphql-rejected
+**Outcome**: Feature pipeline runs nightly in Airflow (MWAA). Features stored in `arbor_features.application_feature_snapshot` Snowflake table. Real-time features (device fingerprint, email age) still computed inline at scoring time. Eliminated Tecton dependency entirely.
 
 ---
 
-## ADR-004: Adopt dbt for all Snowflake transformations (2022-08)
+## ADR-004: Aurora PostgreSQL for Applications and Cases (2023-Q3)
 
-**Status:** Accepted
+**Decision**: Aurora PostgreSQL (writer + 2 read replicas) for application records, fraud cases, and analyst case management data.
 
-**Context:** Initial transforms were bespoke Python scripts run in Lambda, with no lineage tracking, inconsistent naming, and duplicated business logic for EUI (Energy Use Intensity) calculations.
+**Context**: Application data has relational structure (application → bureau pulls → model scores → case → analyst actions → outcome labels) requiring joins and ACID guarantees. DynamoDB was evaluated but relational query patterns (analyst search, case history, outcome analysis) made it a poor fit.
 
-**Decision:** Migrate all transforms to dbt models. Staging models mirror raw S3 ingestion. Intermediate models compute EUI, carbon factors, and compliance thresholds. Mart models serve the API and BI layer.
-
-**Consequences:**
-- Full lineage graph in dbt docs.
-- EUI calculation logic lives in one place — `int_building_eui.sql`.
-- dbt tests catch schema drift within one Airflow cycle.
-- Adds ~15-min latency to data freshness vs. direct Lambda writes (acceptable for compliance use case).
-
-**Tags:** dbt, data-transformation, analytics-engineering
+**Outcome**: Primary data store for all application lifecycle and case management data. Read replicas serve CaseTrack analyst UI and reporting queries. Schema enforces application–case–outcome relationships with foreign key constraints.
 
 ---
 
-## ADR-005: Multi-tenant data isolation via row-level security (2023-06)
+## ADR-005: DynamoDB for Scoring Job Results (2023-Q4)
 
-**Status:** Accepted
+**Decision**: DynamoDB for storing completed scoring job results accessed by the polling endpoint.
 
-**Context:** SOC 2 Type II audit required demonstrating that tenant A cannot access tenant B data. Prior approach relied solely on application-layer filtering, which auditors flagged as insufficient.
+**Context**: Scoring results must be readable by the lender's polling endpoint within milliseconds of the worker completing. Aurora was considered but would add read replica contention. DynamoDB On-Demand provides sub-10ms reads at scale without competing with the application/case tables.
 
-**Decision:** Implement row-level security (RLS) in PostgreSQL using tenant_id column on all sensitive tables. Snowflake uses virtual private data sharing — each customer gets a dedicated Snowflake view scoped to their org_id.
-
-**Consequences:**
-- Application queries must always include tenant context; missing tenant context throws a 403, not a data leak.
-- Performance overhead ~5% on write-heavy tables; acceptable.
-- Snowflake sharing adds ~$200/month per enterprise customer; priced into enterprise tier.
-
-**Tags:** security, multi-tenancy, rls, soc2
+**Outcome**: Partition key: `job_id`. TTL: 7 days (lender fetches result within minutes; 7 days provides grace period). Item contains: score, risk_tier, reason_codes, bureau_pull_summary, model_version, processing_time_ms. Writes from scoring worker; reads from polling API.
 
 ---
 
-## ADR-006: Reject real-time streaming for compliance calculations (2024-01)
+## ADR-006: Tiered Bureau Pull Strategy (2024-Q1)
 
-**Status:** Accepted
+**Decision**: Implement a three-tier bureau pull strategy — tri-merge for high-risk applications, dual pull for medium-risk, single pull for low-risk — based on a fast rules-only pre-screen.
 
-**Context:** Product team requested live carbon penalty forecasts updating as new meter data arrives. Proposed implementation used Flink or Spark Streaming.
+**Context**: Bureau pulls are the largest variable cost in scoring. Full tri-merge (all three bureaus) costs ~$2.50 per application; single pull costs ~$0.80. Running rules against device, email, and phone signals first allows us to segment applications by risk before pulling bureau data.
 
-**Decision:** Rejected real-time streaming for compliance calculations. Regulatory compliance periods are monthly/annual — sub-minute latency has no customer value. Streaming infrastructure would double infrastructure complexity and cost for a feature customers haven't explicitly requested.
+**Outcome**: Rules pre-screen runs in < 100ms (no external API calls). Score from rules assigns applications to a tier. Bureau pulls execute in parallel within the tier. Tri-merge reserved for applications with high-risk pre-screen signals (synthetic identity indicators, application velocity flags). Reduced average bureau cost per application from $2.20 to $1.35.
 
-**Decision:** Near-real-time (15-min cadence via dbt + Airflow) is sufficient. Re-evaluate if customers with >10 buildings request live dashboards in a paid tier.
+---
 
-**Tags:** streaming-rejected, compliance-calculations, cost-optimisation
+## ADR-007: SageMaker Batch Transform for Portfolio Scoring (2024-Q2)
+
+**Decision**: Use SageMaker Batch Transform for nightly portfolio-level fraud re-scoring of open loan applications and funded accounts.
+
+**Context**: Lenders need ongoing monitoring — a borrower who looked clean at origination may show new fraud signals (e.g. consortium flags from other lenders, new derogatory marks). Nightly batch re-scoring using SageMaker Batch Transform is cost-effective (Spot instances) and does not compete with real-time scoring infrastructure.
+
+**Outcome**: Airflow DAG triggers nightly SageMaker Batch Transform job on all open accounts. Results written to Snowflake for lender reporting and to Aurora for CaseTrack alerting. Accounts crossing a configurable risk threshold trigger a CaseTrack alert to the assigned analyst.
+
+---
+
+## ADR-008: Step Functions for Multi-Step Verification Workflow (2024-Q3)
+
+**Decision**: Use AWS Step Functions to orchestrate the multi-step application scoring workflow (rules pre-screen → bureau pull → feature computation → ML inference → decision → webhook delivery).
+
+**Context**: The scoring pipeline has multiple steps with branching logic (bureau timeout → fallback to rules-only, tri-merge vs single pull decision, retry on failure). Implementing this as inline application code was brittle and hard to observe. Step Functions provides visual workflow execution history, built-in retry/backoff per step, and branch logic without custom orchestration code.
+
+**Outcome**: Each scoring job runs as a Step Functions execution. Execution history available in AWS console for debugging. Step-level timeouts and retries configured independently (bureau pull: 3 retries with 500ms backoff; ML inference: 1 retry; webhook delivery: 5 retries with exponential backoff). Replaced ~400 lines of retry/orchestration Python with a state machine definition.

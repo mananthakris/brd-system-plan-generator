@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Python 3.11+ (the project uses `list[str]` and `X | Y` union syntax; 3.9 will fail)
-- An OpenAI API key with access to `gpt-4o`, `gpt-4o-mini`, and `text-embedding-3-small`
+- An OpenAI API key with access to the models in your `.env` (`ORCHESTRATOR_MODEL`, `FAST_MODEL`, `EMBEDDING_MODEL`)
 
 Check your Python version:
 ```bash
@@ -64,8 +64,8 @@ All other values have sensible defaults. Notable overrides:
 
 | Variable | Default | When to change |
 |---|---|---|
-| `ORCHESTRATOR_MODEL` | `gpt-4o` | Swap to `gpt-4o-mini` to cut cost during dev |
-| `AGENT_MODEL` | `gpt-4o` | Same |
+| `ORCHESTRATOR_MODEL` | `gpt-5.4` | Swap to `FAST_MODEL` value to cut cost during dev |
+| `AGENT_MODEL` | `gpt-5.4` | Same |
 | `CHROMA_PERSIST_DIR` | `.chroma` | Change if you want the DB elsewhere |
 | `RAG_SCORE_THRESHOLD` | `0.75` | Lower to `0.5` if retrieval returns nothing |
 | `MAX_REVISION_CYCLES` | `2` | Set to `0` to skip the critic revision loop |
@@ -176,7 +176,233 @@ python3.12 main.py --brd-file your_brd.md --session-id <session-id-from-prior-ru
 
 ---
 
-## 7. Adding a new agent (Phase 2 pattern)
+## 7. Run the UI
+
+The UI is a Vite + React frontend talking to a FastAPI backend over SSE.
+
+### Install frontend dependencies (first time only)
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### Start the backend (terminal 1)
+
+```bash
+source .venv/bin/activate
+venv/bin/python -m uvicorn api.server:app --reload --port 8000
+```
+
+On startup the server seeds the RAG knowledge base automatically.
+Expected output:
+```
+Seeding RAG knowledge base...
+  seeded architecture_decisions.md → ...
+  ...
+RAG ready.
+INFO:     Uvicorn running on http://0.0.0.0:8000
+```
+
+### Start the frontend (terminal 2)
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### Using the UI
+
+1. Paste a BRD or upload a file (`.pdf`, `.docx`, `.md`, `.txt`)
+2. Enter a title and click **Run pipeline**
+3. Watch the pipeline status panel on the left update in real time via SSE
+4. The Solution Architect output card appears once that agent completes (~15–25 s)
+5. Stub agent cards appear greyed out — they fill in as Phase 2 agents are implemented
+
+---
+
+## 8. Running evals
+
+The eval harness runs the full pipeline against 4 golden fraud-domain BRDs and scores every agent output through two independent paths:
+
+- **Structural checks** — rule-based, no LLM cost, always available
+- **LLM-as-Judge** — GPT-4o-mini scores each agent's output against a rubric, results posted back to Phoenix as span annotations
+
+The full cycle is: generate traces → build a dataset → score spans → identify failures → fix prompts → re-run → compare scores. The sections below walk through each step in order.
+
+---
+
+### Step 1 — start Phoenix (keep this terminal open)
+
+Phoenix must be running as a persistent server before you run any eval scripts. Open a dedicated terminal:
+
+```bash
+venv/bin/python -m phoenix.server.main serve
+```
+
+Leave this running. Open `http://localhost:6006` — you should see the Phoenix home screen. All subsequent steps depend on Phoenix being up.
+
+---
+
+### Step 2 — generate traces (run the golden BRDs)
+
+In a **second terminal**:
+
+```bash
+venv/bin/python -m evals.run_golden_brds
+```
+
+What it does:
+- Verifies Phoenix is reachable (exits early if not)
+- Seeds the RAG knowledge base (idempotent)
+- Runs all 4 golden BRDs through the full pipeline
+- Each agent node emits an `AGENT`-kind span with `input` (BRD text + context) and `output` (agent JSON) populated
+- Prints `critic_score` and `revision_count` per BRD
+- Writes `evals/results/golden_brd_run.json`
+
+Expected runtime: ~2–4 minutes (4 full pipeline runs).
+
+After this completes you will see spans in Phoenix UI at `http://localhost:6006` → **brd-planner** project → **Spans** tab. Each agent (`plan_generator`, `solution_architect`, etc.) appears as an `AGENT`-kind span with populated `input` and `output` columns.
+
+---
+
+### Step 3 — dataset creation (automatic)
+
+`run_golden_brds.py` creates the eval dataset for you automatically — no UI steps needed. Phoenix's "Add to Dataset" UI only works for `LLM`-kind spans; it silently skips `AGENT`-kind spans, so dataset creation is done via the Python client instead.
+
+The script builds **one example per agent per BRD** (4 BRDs × 5 agents = 20 examples) and upserts a dataset named `golden_brd_evals` in Phoenix:
+
+| Example field | Contents |
+|---|---|
+| `input` | `agent_name`, `brd_filename`, `brd_title`, `brd_text` (first 5000 chars) |
+| `output` | the agent's structured `content` dict from that run |
+| `metadata` | `brd_id`, `critic_score`, `revision_count` |
+
+On the first run the dataset is created. On subsequent runs a new version is added (Phoenix datasets are versioned — the evaluator always uses the latest version).
+
+View the dataset: `http://localhost:6006` → **Datasets & Experiments** → `golden_brd_evals`.
+
+---
+
+### Step 4 — structural checks (no Phoenix required)
+
+```bash
+venv/bin/python -m evals.run_structural_checks
+```
+
+Runs 6 agents in isolation against the golden BRDs and applies rule-based checks — no LLM calls, no network. Useful for fast feedback during prompt editing.
+
+| Agent | Checks |
+|---|---|
+| plan_generator | phase_count_in_range · all_phases_have_deliverables · scope_boundary |
+| schedule_estimator | duration_set · risk_entries_present · assumptions_nonempty |
+| solution_architect | 2–3 options · unique IDs · valid problem_type · schema_valid |
+| tech_stack_recommender | options_present · recommended_option_set · rationale_nonempty |
+| critic | all_five_dimensions · scores_in_range · revision_notes_present |
+| output_formatter | exec_summary_present · sections_complete · schema_valid |
+
+Results print as a Rich table (green ✓ / red ✗ per check) and are saved to `evals/results/structural_check_results.json`.
+
+Pass-rate thresholds: **≥ 80% = green**, ≥ 60% = amber, < 60% = red.
+
+---
+
+### Step 5 — (optional) verify spans before evaluating
+
+```bash
+venv/bin/python -m evals.run_phoenix_evals
+```
+
+Prints a diagnostic table: span counts by kind, and per agent — how many spans exist and whether `input`/`output` are populated. Use this to confirm the traces from Step 2 look correct before running the experiment.
+
+---
+
+### Step 5 — run the LLM-as-Judge experiment
+
+```bash
+venv/bin/python -m evals.run_experiments
+```
+
+Loads the `golden_brd_evals` dataset and runs `client.experiments.run_experiment()` with three evaluators against all 20 examples (4 BRDs × 5 agents):
+
+| Evaluator | Type | What it measures |
+|---|---|---|
+| `critic_score` | Rule-based | Normalised critic overall_score from the golden run (0–1) |
+| `output_completeness` | Rule-based | Fraction of non-empty fields in the agent output |
+| `llm_quality` | LLM judge (`FAST_MODEL`) | Agent-specific rubric score with a cited explanation |
+
+The `llm_quality` rubric is tailored per agent — for example, `solution_architect` is checked for RAG grounding (uses Kafka/Aurora by name, not "message queue"), `plan_generator` for BRD coverage and phase order, `critic` for feedback specificity.
+
+Makes ~20 LLM calls total (one per example). Results appear immediately in the Phoenix UI:
+
+`http://localhost:6006` → **Datasets & Experiments** → `golden_brd_evals` → **Experiments** tab
+
+Each experiment run is versioned — re-run after editing a prompt and the new version appears alongside the old one for direct score comparison.
+
+---
+
+### Step 6 — read results in the Phoenix UI
+
+1. Go to `http://localhost:6006` → **Datasets & Experiments** → `golden_brd_evals` → **Experiments**
+2. Click the latest experiment run
+3. Each row = one example (one agent × one BRD) with scores for all three evaluators
+4. Click any low-scoring row → see the `llm_quality` explanation citing the specific failure
+5. Filter rows by `input.agent_name` to focus on one agent at a time
+
+---
+
+### The improvement cycle
+
+This is the core loop. Each iteration should move at least one failing evaluator from red to green.
+
+**1. Find what's failing**
+
+Look at the stdout summary table from `run_phoenix_evals.py`. Find evaluators with avg score below 0.7. Example:
+```
+solution_architect  rag_grounding   0.25   25%   ← fix this
+plan_generator      brd_coverage    0.50   50%   ← fix this
+```
+
+**2. Understand why it's failing**
+
+In Phoenix UI: filter by agent name → click a low-scoring span → read the annotation explanation. It will say something like:
+> "The architecture output uses 'message queue' and 'relational database' — generic terms not grounded in Arbor's known stack (Kafka, Aurora Postgres)."
+
+**3. Fix the prompt**
+
+Open the agent file (e.g. `agents/design/solution_architect.py`) and add a targeted instruction to the system prompt. Example:
+> "Always name specific services from the company's known stack: Kafka for messaging, Aurora Postgres for relational data, Redis for caching, EKS for containerised workloads. Do not use generic terms like 'message queue' or 'database'."
+
+**4. Re-run and compare**
+
+```bash
+venv/bin/python -m evals.run_golden_brds && \
+venv/bin/python -m evals.run_phoenix_evals
+```
+
+Check the new summary table. The previously failing evaluator should now score higher. If scores regressed on another evaluator, that prompt instruction may be conflicting — narrow it.
+
+**5. Repeat** until all evaluators are consistently ≥ 0.7.
+
+---
+
+**Common prompt fixes by failure type:**
+
+| Failure | Prompt fix |
+|---|---|
+| `brd_coverage` < 0.7 | "Enumerate each functional requirement from the BRD and map it to a specific phase deliverable." |
+| `rag_grounding` < 0.7 | "Name specific services from the company tech stack (Kafka, Aurora Postgres, Redis, EKS). Do not use generic terms." |
+| `options_genuinely_different` < 0.7 | "Each architectural option must differ in fundamental approach (e.g. event-driven vs. batch, serverless vs. containerised). Configuration differences alone do not count." |
+| `feedback_specificity` < 0.7 | "Every feedback point must name the specific phase, component, or deliverable it refers to." |
+| `phase_count_in_range` fail | Add to schema or prompt: "Produce between 3 and 6 phases." |
+| `assumption_specificity` < 0.7 | "Every assumption must reference specific BRD details: named services, team sizes, or explicit constraints from the document." |
+
+---
+
+## 9. Adding a new agent (Phase 2 pattern)
 
 1. Create `agents/design/<agent_name>.py` or `agents/planning/<agent_name>.py` with a class that has a `run(self, state_dict) -> dict` method returning a serialised `AgentOutput`.
 2. Create `tests/test_<agent_name>.py` following the pattern in `tests/test_solution_architect.py`.
@@ -223,10 +449,10 @@ Run all commands from the `capstone-project/` root with the venv active. The pro
 The `.chroma/` directory is created automatically. If you see a schema mismatch error after updating ChromaDB, run `python3 -m rag.seed --reset` to rebuild.
 
 **OpenAI rate limit errors**
-The GPT-4o calls in `solution_architect.py` are sequential (classify, then design) — no parallelism to cause burst. If you hit limits, set `ORCHESTRATOR_MODEL=gpt-4o-mini` in `.env` for development.
+The agent calls in `solution_architect.py` are sequential (classify, then design) — no parallelism to cause burst. If you hit rate limits, set `ORCHESTRATOR_MODEL` to your `FAST_MODEL` value in `.env` for development.
 
 **RAG returning no results (empty `retrieved_chunks`)**
 Lower `RAG_SCORE_THRESHOLD` to `0.5` in `.env` and re-run. If still empty, confirm the seed ran successfully with `python3 -m rag.seed`.
 
 **`with_structured_output` parsing errors**
-Intermittent JSON parse failures from the LLM. Re-running usually resolves it. If persistent, the model may be hitting a context limit — try shortening the BRD input or switching to `gpt-4o`.
+Intermittent JSON parse failures from the LLM. Re-running usually resolves it. If persistent, the model may be hitting a context limit — try shortening the BRD input.

@@ -22,11 +22,12 @@ class DocType(str, Enum):
 
 
 class ProblemType(str, Enum):
-    GREENFIELD = "greenfield"
-    MIGRATION = "migration"
-    INTEGRATION = "integration"
-    POC = "poc"
-    ENHANCEMENT = "enhancement"
+    GREENFIELD = "greenfield"    # entirely new standalone product or system
+    NEW_FEATURE = "new_feature"  # net-new capability in an existing product (nothing to extend)
+    MIGRATION = "migration"      # moving from one technology or platform to another
+    INTEGRATION = "integration"  # connecting existing systems via APIs or event streams
+    POC = "poc"                  # time-boxed spike to validate before full build
+    ENHANCEMENT = "enhancement"  # improving or extending functionality that already exists
 
 
 class ComplexityLevel(str, Enum):
@@ -135,15 +136,27 @@ class ScheduleEstimate(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Design agents output
+# Design agents output — multi-option architecture
 # ---------------------------------------------------------------------------
 
-class ArchitectureDesign(BaseModel):
-    problem_type: ProblemType
+class ArchitectureOption(BaseModel):
+    option_id: str          # "A", "B", "C"
+    name: str               # short descriptive name, e.g. "Streaming-first with Kafka + Feature Store"
+    description: str        # 1-3 sentence summary of the approach
     high_level_components: list[str]
     data_flow: str
     integration_points: list[str]
     constraints_addressed: list[str]
+    trade_offs: str         # concise pros/cons narrative
+    estimated_complexity: str  # "low" | "medium" | "high"
+
+
+class ArchitectureDesign(BaseModel):
+    problem_type: ProblemType
+    classification_rationale: str
+    options: list[ArchitectureOption]
+    recommended_option_id: str        # "A", "B", or "C"
+    recommendation_rationale: str
 
 
 class TechOption(BaseModel):

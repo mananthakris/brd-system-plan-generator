@@ -1,91 +1,69 @@
-# Cloud Infrastructure — Verdant Intelligence
+# Cloud Infrastructure — Arbor Risk (Lending Fraud)
 
-## Cloud Strategy
+## Regions & Availability
 
-**Primary cloud:** AWS (us-east-1 primary, us-west-2 DR)
-**Secondary cloud:** GCP us-central1 — ML workloads only (SageMaker alternative; under evaluation for consolidation)
-**Multi-cloud principle:** Avoid where possible. GCP presence is legacy; roadmap item to consolidate to AWS SageMaker by 2026.
+- **Primary region**: us-east-1 (3 AZs active)
+- **DR region**: us-west-2 (warm standby — RPO 15 min, RTO 60 min)
+- All stateful services deployed Multi-AZ within primary region
 
-## AWS Account Structure
+## Network Topology
 
-| Account | Purpose |
+| Segment | Details |
 |---|---|
-| verdant-prod | Production workloads |
-| verdant-staging | Staging environment (mirrors prod topology) |
-| verdant-dev | Development; developers have broader IAM permissions |
-| verdant-security | Security tooling, GuardDuty aggregation, CloudTrail |
+| VPC CIDR | 10.0.0.0/8 split into environment-specific VPCs |
+| Environments | production, staging, dev — separate VPCs connected via Transit Gateway |
+| Egress | NAT Gateway per AZ |
+| AWS service access | PrivateLink for Aurora, ElastiCache, DynamoDB, SQS |
+| External API connectivity | Outbound HTTPS to Experian, Equifax, TransUnion, LexisNexis via NAT Gateway with egress IP allowlisting at bureau side |
 
 ## Compute
 
-| Service | Usage |
-|---|---|
-| ECS Fargate | API service (FastAPI), Celery workers, Airflow workers |
-| Lambda | Utility webhook consumers, S3 event processors, scheduled data sync jobs |
-| EC2 (minimal) | Bastion host only (us-east-1a); all application workloads are container/serverless |
-
-**Networking:**
-- VPC with public/private subnets in 3 AZs
-- Application Load Balancer → ECS Fargate (API)
-- NAT Gateway for outbound Lambda/Fargate calls
-- VPC Endpoints for S3 and DynamoDB (cost optimisation)
-
-## Data
-
-| Service | Usage | Scale |
+| Tier | Technology | Notes |
 |---|---|---|
-| RDS Aurora PostgreSQL | Transactional DB | r6g.large; ~800GB, ~2k QPS peak |
-| Snowflake | Analytics warehouse | Enterprise, 2 virtual warehouses (COMPUTE_WH, REPORTING_WH) |
-| S3 | Raw meter data, reports, ML training data | ~4TB; lifecycle rules to Glacier after 2 years |
-| ElastiCache Redis | API cache + Celery broker | cache.r7g.large; single-AZ (acceptable for cache) |
-| SQS FIFO | Utility webhook ingestion | verdant-meter-ingest.fifo |
-| DynamoDB | Feature flags, ephemeral session data | On-demand pricing |
+| API and scoring workers | EKS node groups — m7g.xlarge Graviton | Python FastAPI services; right-sized for CPU-bound ML inference |
+| Batch scoring | SageMaker Batch Transform on Spot | Nightly portfolio re-scoring; up to 70% cost saving on Spot |
+| Batch pipelines | EMR on Spot | Spark feature backfills and model training |
+| Lightweight orchestration | AWS Step Functions | Per-application scoring workflow; no persistent compute |
 
-## Networking & Security
+## Data Storage
 
-| Aspect | Configuration |
-|---|---|
-| WAF | AWS WAF on ALB; rules for OWASP top 10 |
-| DDoS | AWS Shield Standard |
-| Secrets | AWS Secrets Manager; rotated every 90 days |
-| Encryption at rest | All S3, RDS, Snowflake encrypted (AES-256) |
-| Encryption in transit | TLS 1.2+ enforced everywhere |
-| IAM | Least-privilege; task roles for ECS; no long-lived keys in applications |
-| SOC 2 Type II | Certified (2024); annual renewal |
+| Service | Configuration | Retention |
+|---|---|---|
+| S3 | Raw application data, model artefacts, Spark output — Intelligent Tiering | 30d hot, 1yr warm, 5yr Glacier |
+| EBS | Encrypted gp3 for EKS stateful sets | Snapshotted daily |
+| Aurora PostgreSQL | Multi-AZ writer + 2 read replicas | Daily snapshots to S3, 90-day retention |
+| ElastiCache Redis | Cluster mode — 2 primaries, 2 replicas | Bureau cache: 24h TTL · Job state: 1h TTL |
+| DynamoDB | On-Demand capacity | Scoring results: 7-day TTL |
 
-## Observability
+## Latency Targets (Production SLA)
 
-| Tool | Use |
-|---|---|
-| Datadog APM | Distributed tracing across FastAPI → Celery → Lambda |
-| Datadog Logs | Centralised log aggregation; 30-day retention |
-| Datadog Dashboards | SLA dashboards for report generation SLO (99.5% success, <60s p95) |
-| PagerDuty | On-call alerts; escalation policies for P1/P2 |
-| AWS CloudTrail | Audit log; forwarded to security account |
-| AWS Config | Compliance rules for SOC 2 controls |
+| Path | Target | Measurement |
+|---|---|---|
+| Scoring API (job submission) | p99 < 200ms | Datadog APM |
+| End-to-end scoring (submission to webhook) | p99 < 3 seconds | Step Functions execution duration |
+| Bureau API pull (single bureau) | p99 < 1.5 seconds | Datadog external check |
+| ML inference (in-memory model) | p99 < 200ms | Measured inside scoring pod |
+| Polling endpoint (job result read) | p99 < 50ms | DynamoDB + Datadog |
+| CaseTrack UI queries | p99 < 500ms | Aurora read replica + Datadog |
 
-## Cost Profile (monthly, approximate)
+## Autoscaling
 
-| Category | Monthly cost |
-|---|---|
-| Compute (ECS + Lambda) | ~$3,200 |
-| Data (RDS + ElastiCache + SQS) | ~$2,800 |
-| Snowflake | ~$4,500 |
-| S3 + data transfer | ~$800 |
-| Monitoring (Datadog) | ~$2,100 |
-| Other (WAF, secrets, misc) | ~$600 |
-| **Total AWS + Snowflake** | **~$14,000** |
+- **Scoring worker pods**: EKS HPA on SQS queue depth (KEDA SQS scaler — 1 pod per 50 queued jobs)
+- **API pods**: EKS HPA on CPU utilisation (target 70%)
+- **SageMaker Batch Transform**: scales automatically per job configuration
+- **DynamoDB**: On-Demand — no pre-provisioning needed
 
-## Deployment Process
+## Security Boundaries
 
-- GitHub Actions → Docker build → ECR push → ECS rolling deployment
-- Blue/green deployments for API (zero-downtime)
-- Lambda deployed via SAM CLI in GitHub Actions
-- Terraform state in S3 + DynamoDB locking
-- Promotion path: dev → staging (automated on merge to main) → prod (manual approval gate)
+- All applicant NPI encrypted at rest (AES-256 via AWS KMS) and in transit (TLS 1.3)
+- Bureau pull records stored in Aurora with restricted IAM access (scoring worker role only)
+- GLBA NPI access logged to Datadog with service identity, timestamp, and purpose code
+- Annual penetration testing of production environment
+- All production changes require change management record (SOC 2 evidence via Drata)
 
-## Capacity Limits & Known Constraints
+## Disaster Recovery
 
-- Aurora PostgreSQL: approaching read IOPS limit on compliance report generation days (month-end); read replica planned for Q3 2025.
-- SQS FIFO throughput: capped at 300 msg/s per queue; sufficient for current meter count (~12k active meters), will need sharding at ~50k meters.
-- Snowflake COMPUTE_WH: occasionally queued on first-of-month report runs; upgrading from XS to S warehouse is approved but not yet applied.
-- Lambda concurrency: soft limit 1000 in us-east-1; current peak ~180; headroom acceptable for next 18 months.
+- Aurora Global Database: cross-region replication lag < 1 second
+- S3 Cross-Region Replication for all critical buckets (model artefacts, training data)
+- EKS cluster in us-west-2 pre-configured; Route 53 health-check failover activates it
+- Quarterly DR drill with RTO/RPO validation

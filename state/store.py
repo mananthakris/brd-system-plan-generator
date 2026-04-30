@@ -6,16 +6,24 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver  # requires langgraph-checkpoint-sqlite
 
 from config import settings
 
 
-def get_checkpointer() -> SqliteSaver:
-    """Return a SqliteSaver for LangGraph state persistence."""
-    db_path = Path(settings.sqlite_db_path)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    return SqliteSaver.from_conn_string(str(db_path))
+def get_checkpointer() -> MemorySaver:
+    """Return an in-memory checkpointer for LangGraph state.
+
+    MemorySaver is used here because SqliteSaver.from_conn_string() in
+    langgraph-checkpoint-sqlite 2.x returns a context manager, not a saver
+    instance. Switch to the direct-connection approach below when persistent
+    checkpoints across server restarts are needed:
+
+        conn = sqlite3.connect(str(db_path), check_same_thread=False)
+        return SqliteSaver(conn)
+    """
+    return MemorySaver()
 
 
 class StateStore:

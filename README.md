@@ -1,6 +1,6 @@
 # BRD → Engineering System Plan — Multi-Agent Pipeline
 
-A multi-agent system that ingests Business Requirements Documents (BRDs, PRDs, RFCs) and produces structured engineering system plans. Built with LangGraph and OpenAI, evaluated against **Verdant Intelligence** — a fictional energy benchmarking and compliance SaaS company.
+A multi-agent system that ingests Business Requirements Documents (BRDs, PRDs, RFCs) and produces decision-ready engineering plans with competing architectural options. Built with LangGraph and OpenAI, evaluated against **Arbor Risk** — a fictional fraud detection and risk decisioning platform.
 
 → [Runtime Topology & Architecture](docs/ARCHITECTURE.md)
 
@@ -16,7 +16,7 @@ BRD / PRD / RFC
   Orchestrator (LangGraph hub-and-spoke)
       ↓
   Planning group          Design group
-  ├── Plan Generator      ├── Solution Architect (classifies problem type)
+  ├── Plan Generator      ├── Solution Architect (classify → 2-3 competing options + recommendation)
   └── Schedule Estimator  ├── PoC Planner (conditional)
                           └── Tech Stack Recommender
       ↓
@@ -31,17 +31,28 @@ All agents retrieve context from a RAG pipeline (Chroma + `text-embedding-3-smal
 
 ---
 
-## Evaluation company: Verdant Intelligence
+## Evaluation company: Arbor Risk
 
-A fictional ~52-person energy compliance SaaS company based in Chicago. Their platform helps building owners track carbon emissions and forecast penalties under NYC Local Law 97, Chicago BEPO, and Boston BERDO.
+A fictional fraud detection and risk decisioning platform serving banks, card issuers, payment processors, and lending platforms. Arbor operates in-house ML models (XGBoost, LightGBM, PyTorch GNN) on AWS, scoring transactions in < 80ms p99 via an ensemble of rules, gradient boosting, and network graph signals.
 
-The included sample BRD — **Automated Carbon Penalty Forecasting Engine** (`rag/sources/brd_penalty_forecasting_engine.md`) — is the primary evaluation artifact for this project.
+**Five sample BRDs (in `rag/sources/`):**
+| BRD | Problem type |
+|---|---|
+| Real-Time Transaction Scoring Engine | new_feature |
+| Velocity Rules Configurator (RuleForge v2) | new_feature |
+| Account Takeover Detection Service | new_feature |
+| Dispute & Chargeback Automation (CaseTrack v2) | new_feature |
+| Model Explainability & Reason Codes | new_feature |
 
 **Tech stack (used to seed RAG):**
-- Backend: Python / FastAPI / PostgreSQL (Aurora) / Celery
-- Data: Snowflake / dbt / Airflow (MWAA)
-- Infrastructure: AWS (ECS Fargate, S3, SQS, Lambda) / Terraform
-- Frontend: React / TypeScript
+- Event streaming: Apache Kafka on MSK + Confluent Schema Registry (Avro)
+- Feature store: Tecton (online: ElastiCache Redis · offline: S3 + Spark)
+- ML inference: FastAPI on EKS (XGBoost/LightGBM in-memory, p99 < 40ms)
+- Databases: Aurora PostgreSQL · DynamoDB · ElastiCache Redis
+- Data: Snowflake + dbt · Apache Spark on EMR · Airflow (MWAA)
+- API: FastAPI (Python 3.12) · Gin (Go) · gRPC
+- Infrastructure: AWS EKS (Graviton) · Terraform · ArgoCD
+- Observability: Datadog · Evidently AI · LangSmith
 
 ---
 
@@ -55,19 +66,24 @@ capstone-project/
 │   └── design/               # Phase 2: solution_architect.py, poc_planner.py, tech_stack_recommender.py
 ├── ingestion/
 │   ├── parser.py             # PDF / DOCX / MD → raw text
-│   ├── classifier.py         # GPT-4o-mini section classifier
-│   ├── tagger.py             # GPT-4o-mini metadata tagger
+│   ├── classifier.py         # GPT-5.4-mini section classifier
+│   ├── tagger.py             # GPT-5.4-mini metadata tagger
 │   └── pipeline.py           # Composed ingestion entry point
 ├── rag/
 │   ├── pipeline.py           # Chroma client, embed, retrieve
 │   ├── seed.py               # Seed knowledge base from sources/
 │   └── sources/              # RAG knowledge base (Markdown files)
-│       ├── architecture_decisions.md
-│       ├── current_tools_and_stack.md
-│       ├── team_skills.md
-│       ├── cloud_infrastructure.md
-│       ├── domain_context_energy_compliance.md
-│       └── brd_penalty_forecasting_engine.md   ← primary eval BRD
+│       ├── architecture_decisions.md         # 8 Arbor Risk ADRs
+│       ├── current_tools_and_stack.md        # full Arbor stack reference
+│       ├── cloud_infrastructure.md           # AWS topology + SLAs
+│       ├── team_skills.md                    # team composition + gaps
+│       ├── domain_context_fraud_detection.md # fraud domain + regulatory context
+│       ├── fraud_pattern_library.md          # fraud attack patterns + detection signals
+│       ├── compliance_standards.md               # FCRA · ECOA · GLBA · BSA/AML · GDPR · SOC 2
+│       ├── brd_application_fraud_scoring.md      # ScoreIQ v2 — async scoring pipeline
+│       ├── brd_synthetic_identity_detection.md   # IdentityGraph v1 — synthetic identity ML
+│       ├── brd_adverse_action_reason_codes.md    # ReasonIQ v1 — FCRA reason code engine
+│       └── brd_first_party_fraud_case_management.md  # CaseTrack v2 — analyst workbench + SAR
 ├── schemas/
 │   └── models.py             # All Pydantic models + LangGraph GraphState
 ├── state/
@@ -104,7 +120,7 @@ cp .env.example .env
 
 **3. Run the demo**
 
-Ingests the built-in Penalty Forecasting BRD through the full pipeline:
+Ingests the Real-Time Transaction Scoring BRD through the full pipeline:
 
 ```bash
 python main.py --demo
@@ -141,7 +157,7 @@ python -m rag.seed --reset
 | 3 | Upcoming | Critic Agent with rubric scoring; revision loop |
 | 4 | Upcoming | HITL gate (`interrupt()`), output formatter, PDF/MD export |
 | 5 | Upcoming | Guardrails hardening, cross-agent consistency checks |
-| Evals | Later | Offline eval harness against Verdant Intelligence BRDs; rubric schema already defined in `CriticRubric` |
+| Evals | Later | Offline eval harness against Arbor Risk BRDs; rubric schema defined in `CriticRubric`; decision-engine dimensions (option diversity, constraint satisfaction, recommendation justification, trade-off honesty) planned |
 
 ---
 
@@ -151,7 +167,7 @@ python -m rag.seed --reset
 
 **Problem type classification gates the graph** — The Solution Architect classifies the BRD as `greenfield | migration | integration | poc | enhancement` before any design work. This single field controls whether the PoC Planner runs and how the final output is sized.
 
-**Dual model strategy** — `gpt-4o` for Orchestrator, Solution Architect, and Critic (judgment-heavy). `gpt-4o-mini` for Schedule Estimator, PoC Planner, Tech Stack Recommender (structured output from clear inputs).
+**Dual model strategy** — `gpt-5.4` for Orchestrator, Solution Architect, and Critic (judgment-heavy). `gpt-5.4-mini` for Schedule Estimator, PoC Planner, Tech Stack Recommender (structured output from clear inputs).
 
 **RAG retrieval at agent level, not graph level** — Each agent issues its own retrieval query tuned to its task. The Orchestrator does not pre-fetch; agents pull exactly what they need (top-k=5, cosine similarity ≥ 0.75).
 
