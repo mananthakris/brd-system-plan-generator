@@ -1,2 +1,35 @@
-venv/*
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Environment
 .env
+
+# RAG database (rebuilt by: python -m rag.seed)
+.chroma/
+
+# LangGraph checkpoints and session state (runtime data, not source)
+.state/
+
+# Eval results (generated output, not source)
+evals/results/
+
+# Generated output files
+output/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
