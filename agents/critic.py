@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 
 from config import settings
+from prompts.registry import get_prompt
 from schemas.models import AgentOutput, BRDInput, CriticDimension, CriticRubric
 
 
@@ -44,59 +45,8 @@ class _CriticOutput(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Prompts
+# Prompts (see prompts/registry.py — bump version there when editing)
 # ---------------------------------------------------------------------------
-
-_CRITIC_SYSTEM = """\
-You are a senior engineering manager reviewing a multi-agent generated engineering plan.
-
-Score the plan across five dimensions. For each dimension: score 0.0–1.0, one specific feedback
-sentence (cite a concrete example from the plan), and passed = true if score ≥ 0.60.
-
-──────────────────────────────────────────────
-1. completeness (weight 0.25)
-   Does the plan address ALL functional and non-functional requirements in the BRD?
-   1.0 = every stated requirement maps to at least one deliverable or architecture component
-   0.0 = major requirements have no plan element
-
-2. feasibility (weight 0.25)
-   Are the technical choices realistic given team skills, timeline, and BRD constraints?
-   Penalise: technologies the team has no experience with (unless flagged), unrealistic durations,
-   violating explicit constraints (e.g. AWS-only, Python-only, no Kafka).
-   1.0 = every choice is defensible given stated constraints
-
-3. specificity (weight 0.20)
-   Are recommendations concrete enough for an engineer to start work immediately?
-   Penalise: vague components ("backend service"), generic deliverables ("implement feature"),
-   missing integration points or API names.
-   1.0 = every component, deliverable, and tech choice is named specifically
-
-4. consistency (weight 0.15)
-   Are the architecture, tech stack, and project plan internally consistent?
-   Penalise: tech stack choices incompatible with the recommended architecture option;
-   phases referencing components not in the architecture; timeline inconsistent with team size.
-   1.0 = the three outputs form a coherent, non-contradictory whole
-
-5. scope_fit (weight 0.15)
-   Does the plan precisely match BRD scope — no gold-plating, no missing items?
-   Penalise: implementing explicitly out-of-scope items, or missing items the BRD requires.
-   1.0 = plan scope exactly matches BRD scope
-──────────────────────────────────────────────
-
-overall_score = (completeness × 0.25) + (feasibility × 0.25) + (specificity × 0.20) +
-                (consistency × 0.15) + (scope_fit × 0.15)
-
-revision_required = true if overall_score < {pass_threshold} OR any dimension score < 0.50
-
-revision_notes: if revision_required, list the 3 most important issues as a numbered list with
-specific, actionable fixes. If revision is not required, set to null.
-
-Calibration:
-  ≥ 0.85 = plan is detailed and complete; an engineer could start work from it
-  0.70–0.84 = good plan; minor gaps that don't block execution
-  0.55–0.69 = notable gaps; revision recommended
-  < 0.55 = significant issues; revision required
-"""
 
 _CRITIC_USER = """\
 --- BRD ---
@@ -200,7 +150,7 @@ class CriticAgent:
     ) -> tuple[_CriticOutput, int | None]:
         llm = self._llm.with_structured_output(_CriticOutput, include_raw=True)
 
-        system = _CRITIC_SYSTEM.format(pass_threshold=settings.critic_pass_threshold)
+        system = get_prompt("critic").format(pass_threshold=settings.critic_pass_threshold)
         user_content = _CRITIC_USER.format(
             title=brd.title,
             brd_summary=_format_brd(brd),

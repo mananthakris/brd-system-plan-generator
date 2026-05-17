@@ -19,18 +19,22 @@ Improvement cycle:
 """
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import sys
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 from phoenix.client import Client
 
 from config import settings
+from prompts.registry import get_all_versions
 
 DATASET_NAME = "golden_brd_evals"
 PHOENIX_URL = "http://localhost:6006"
+RESULTS_DIR = Path(__file__).parent / "results"
 
 
 def _check_phoenix_running() -> None:
@@ -91,7 +95,8 @@ _AGENT_RUBRIC: dict[str, str] = {
     "solution_architect": (
         "Check: (1) problem_type classification matches the BRD, "
         "(2) options are genuinely different architectural approaches (not just config variants), "
-        "(3) components reference Arbor's known stack (Kafka, Aurora Postgres, Redis, EKS) by name."
+        "(3) components are named specifically using services from the RAG context — not generic terms "
+        "like 'message queue' or 'database' (e.g. should say 'Amazon SQS', 'Aurora Postgres', not just 'queue')."
     ),
     "tech_stack_recommender": (
         "Check: (1) recommended option primarily uses Arbor's existing services rather than introducing new ones, "
@@ -125,7 +130,7 @@ def llm_quality(input: Any, output: Any) -> tuple[float, str]:
         f"Agent output:\n{output_str}\n\n"
         f"Score 0.0–1.0 based on the rubric above. "
         f"Respond ONLY as: <score> | <one sentence citing the specific strength or failure>\n"
-        f"Example: 0.8 | Plan maps all BRD requirements to specific deliverables with Kafka and Aurora named."
+        f"Example: 0.8 | Plan maps all BRD requirements to specific deliverables with SQS and Aurora Postgres named."
     )
 
     try:
@@ -139,6 +144,49 @@ def llm_quality(input: Any, output: Any) -> tuple[float, str]:
         return float(score_str.strip()), explanation.strip()
     except Exception as exc:
         return 0.5, f"judge error: {exc}"
+
+
+# ---------------------------------------------------------------------------
+# Local score snapshot (rule-based only, no LLM calls — used by compare_experiments.py)
+# ---------------------------------------------------------------------------
+
+def _compute_local_scores(examples: list) -> dict[str, dict[str, float]]:
+    """Average rule-based scores per agent across all examples (no LLM calls)."""
+    scores_by_agent: dict[str, dict[str, list[float]]] = {}
+    for example in examples:
+        inp = getattr(example, "input", None) or {}
+        out = getattr(example, "output", None)
+        meta = getattr(example, "metadata", None)
+        agent_name = inp.get("agent_name", "unknown") if isinstance(inp, dict) else "unknown"
+        cs = critic_score(meta)[0]
+        oc = output_completeness(out)[0]
+        if agent_name not in scores_by_agent:
+            scores_by_agent[agent_name] = {"critic_score": [], "output_completeness": []}
+        scores_by_agent[agent_name]["critic_score"].append(cs)
+        scores_by_agent[agent_name]["output_completeness"].append(oc)
+    return {
+        agent: {k: round(sum(v) / len(v), 4) for k, v in evals.items()}
+        for agent, evals in scores_by_agent.items()
+    }
+
+
+def _save_local_snapshot(scores: dict, experiment_name: str) -> Path:
+    """Save a score snapshot to evals/results/ tagged with the current prompt versions."""
+    RESULTS_DIR.mkdir(exist_ok=True)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    snapshot = {
+        "experiment_name": experiment_name,
+        "timestamp": datetime.datetime.now().isoformat(),
+        "prompt_versions": get_all_versions(),
+        "note": (
+            "Rule-based scores (critic_score, output_completeness) averaged per agent across all BRDs. "
+            "LLM quality scores are in the Phoenix UI Experiments tab."
+        ),
+        "scores": scores,
+    }
+    path = RESULTS_DIR / f"experiment_{timestamp}.json"
+    path.write_text(json.dumps(snapshot, indent=2))
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -159,9 +207,20 @@ def main() -> None:
         print("Run: venv/bin/python -m evals.run_golden_brds")
         sys.exit(1)
 
-    example_count = len(list(dataset))
+    examples_list = list(dataset)
+    example_count = len(examples_list)
     print(f"Loaded {example_count} examples (4 BRDs × 5 agents).")
-    print(f"Running experiment with model '{settings.fast_model}' as judge...")
+
+    print("Computing local rule-based scores (no LLM calls)...")
+    local_scores = _compute_local_scores(examples_list)
+    snapshot_path = _save_local_snapshot(local_scores, "golden-brd-llm-judge")
+    print(f"Local snapshot saved → {snapshot_path}")
+    print(f"  (use venv/bin/python -m evals.compare_experiments to diff two snapshots)\n")
+
+    prompt_versions = get_all_versions()
+    version_tag = " | ".join(f"{a}@{v}" for a, v in sorted(prompt_versions.items()))
+
+    print(f"Running LLM-judge experiment with model '{settings.fast_model}'...")
     print("This makes one LLM call per example → ~20 calls total.\n")
 
     client.experiments.run_experiment(
@@ -170,8 +229,9 @@ def main() -> None:
         evaluators=[critic_score, output_completeness, llm_quality],
         experiment_name="golden-brd-llm-judge",
         experiment_description=(
-            "LLM-as-judge scoring of all 5 agent outputs across 4 golden BRDs. "
-            "Re-run after editing a prompt to compare scores across experiment versions."
+            f"LLM-as-judge scoring of all 5 agent outputs across 4 golden BRDs. "
+            f"Prompt versions: {version_tag}. "
+            f"Re-run after editing a prompt to compare scores across experiment versions."
         ),
     )
 
@@ -179,9 +239,9 @@ def main() -> None:
     print("Each agent × BRD row shows critic_score, completeness, and llm_quality scores.")
     print("\nImprovement cycle:")
     print("  1. Find low llm_quality rows → read the judge explanation")
-    print("  2. Edit the prompt in agents/<group>/<agent>.py")
+    print("  2. Edit prompt in prompts/registry.py and bump the version")
     print("  3. Re-run: venv/bin/python -m evals.run_golden_brds && venv/bin/python -m evals.run_experiments")
-    print("  4. Compare the new experiment version's scores against the previous one in the UI")
+    print("  4. Compare: venv/bin/python -m evals.compare_experiments --baseline <old.json> --candidate <new.json>")
 
 
 if __name__ == "__main__":

@@ -69,5 +69,5 @@ START
 
 ## What is not shown
 
-- **Eval harness** — An offline evaluation system will score final engineering plans against ground-truth rubrics using the sample Verdant Intelligence BRDs. This is a separate pipeline, not part of the runtime graph.
+- **Eval harness** — An offline evaluation system will score final engineering plans against ground-truth rubrics using the sample Arbor Risk BRDs. This is a separate pipeline, not part of the runtime graph.
 - **Embedding pipeline for new documents** — Adding documents to the RAG knowledge base is a one-time seed operation (`rag/seed.py`), not part of the live inference path.

@@ -13,6 +13,7 @@ from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
 from config import settings
+from prompts.registry import get_prompt
 from rag.pipeline import RAGPipeline
 from schemas.models import (
     AgentOutput,
@@ -42,38 +43,8 @@ class _TechStackOutput(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Prompts
+# Prompts (see prompts/registry.py — bump version there when editing)
 # ---------------------------------------------------------------------------
-
-_STACK_SYSTEM = """\
-You are a senior platform engineer producing technology stack recommendations for a software feature
-at a fraud detection and risk decisioning company.
-
-Given the BRD constraints and the Solution Architect's recommended architecture, propose 2-3 concrete
-technology stack configurations. Each configuration is a complete set of technology choices for
-implementing the feature — not a comparison of individual tools in isolation.
-
-For each option provide:
-- name: short descriptive label (e.g. "AWS-native managed services", "Extend existing SQS pipeline",
-  "Lightweight in-process module")
-- rationale: 1-2 sentences explaining the core approach
-- pros: 3-5 concrete advantages in the context of this BRD and company
-- cons: 2-4 concrete disadvantages or risks
-- estimated_effort: realistic descriptor (e.g. "2 engineers · 4 weeks", "1 engineer · 2 weeks")
-
-Then set recommended to exactly one of the option names, and provide a rationale explaining:
-- Why this option best satisfies the BRD's functional and non-functional requirements
-- How it aligns with the company's existing stack (cite specific services by name)
-- What team skill constraints it respects
-
-Rules:
-- Strongly prefer extending existing technology choices over introducing new services or languages
-- If the team has no experience with a technology, flag it explicitly in cons
-- Never recommend options that violate BRD constraints (e.g. AWS-only, Python-only, no Kafka)
-- Options must be meaningfully different approaches, not minor variations of the same design
-- "estimated" means realistic — do not under-estimate to make an option look attractive
-- The recommended value must exactly match one of the option names you produce
-"""
 
 _STACK_USER = """\
 --- Company context (current stack, team skills, past ADRs) ---
@@ -165,7 +136,7 @@ class TechStackRecommenderAgent:
             architecture_summary=arch_summary,
         )
         result = llm.invoke([
-            {"role": "system", "content": _STACK_SYSTEM},
+            {"role": "system", "content": get_prompt("tech_stack_recommender")},
             {"role": "user", "content": user_content},
         ])
         parsed: _TechStackOutput = result["parsed"]

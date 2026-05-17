@@ -1,4 +1,4 @@
-"""Populate Chroma with all Verdant Intelligence knowledge base documents."""
+"""Populate Chroma with all Arbor Risk knowledge base documents."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -20,7 +20,7 @@ def seed(reset: bool = False) -> RAGPipeline:
         from config import settings
         client = chromadb.PersistentClient(path=settings.chroma_persist_dir)
         try:
-            client.delete_collection("verdant_knowledge")
+            client.delete_collection("arbor_knowledge")
         except Exception:
             pass
         rag = RAGPipeline()

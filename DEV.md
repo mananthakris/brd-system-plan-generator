@@ -74,7 +74,7 @@ All other values have sensible defaults. Notable overrides:
 
 ## 4. Seed the RAG knowledge base
 
-This loads the Verdant Intelligence knowledge base (architecture decisions, team skills, cloud infra, domain context, sample BRD) into ChromaDB. It is idempotent — safe to run multiple times.
+This loads the Arbor Risk knowledge base (architecture decisions, team skills, cloud infra, domain context, sample BRD) into ChromaDB. It is idempotent — safe to run multiple times.
 
 ```bash
 python3.12 -m rag.seed
@@ -334,13 +334,15 @@ Loads the `golden_brd_evals` dataset and runs `client.experiments.run_experiment
 | `output_completeness` | Rule-based | Fraction of non-empty fields in the agent output |
 | `llm_quality` | LLM judge (`FAST_MODEL`) | Agent-specific rubric score with a cited explanation |
 
-The `llm_quality` rubric is tailored per agent — for example, `solution_architect` is checked for RAG grounding (uses Kafka/Aurora by name, not "message queue"), `plan_generator` for BRD coverage and phase order, `critic` for feedback specificity.
+The `llm_quality` rubric is tailored per agent — for example, `solution_architect` is checked for RAG grounding (uses specific service names from context, not generic terms like "message queue"), `plan_generator` for BRD coverage and phase order, `critic` for feedback specificity.
 
 Makes ~20 LLM calls total (one per example). Results appear immediately in the Phoenix UI:
 
 `http://localhost:6006` → **Datasets & Experiments** → `golden_brd_evals` → **Experiments** tab
 
 Each experiment run is versioned — re-run after editing a prompt and the new version appears alongside the old one for direct score comparison.
+
+The script also saves a **local score snapshot** to `evals/results/experiment_<timestamp>.json` tagged with the current prompt versions from `prompts/registry.py`. These snapshots are used by `compare_experiments.py` and do not require Phoenix to be running.
 
 ---
 
@@ -356,34 +358,67 @@ Each experiment run is versioned — re-run after editing a prompt and the new v
 
 ### The improvement cycle
 
-This is the core loop. Each iteration should move at least one failing evaluator from red to green.
+This is the core loop. Each iteration should move at least one failing evaluator from red to green. Prompts are versioned artifacts in `prompts/registry.py` — every change is traceable to the eval run that validated it.
 
 **1. Find what's failing**
 
-Look at the stdout summary table from `run_phoenix_evals.py`. Find evaluators with avg score below 0.7. Example:
+Run the experiments and check the stdout per-agent score summary or Phoenix UI. Find evaluators with avg score below 0.7. Example:
 ```
-solution_architect  rag_grounding   0.25   25%   ← fix this
-plan_generator      brd_coverage    0.50   50%   ← fix this
+solution_architect  llm_quality     0.25   ← fix this
+plan_generator      critic_score    0.50   ← fix this
 ```
 
 **2. Understand why it's failing**
 
-In Phoenix UI: filter by agent name → click a low-scoring span → read the annotation explanation. It will say something like:
-> "The architecture output uses 'message queue' and 'relational database' — generic terms not grounded in Arbor's known stack (Kafka, Aurora Postgres)."
+In Phoenix UI: `http://localhost:6006` → Datasets & Experiments → `golden_brd_evals` → Experiments → click a low-scoring row → read the `llm_quality` explanation. It will say something like:
+> "The architecture output uses 'message queue' and 'relational database' — generic terms not grounded in Arbor's known stack (Amazon SQS, Aurora Postgres)."
 
-**3. Fix the prompt**
+**3. Edit the prompt in the registry and bump the version**
 
-Open the agent file (e.g. `agents/design/solution_architect.py`) and add a targeted instruction to the system prompt. Example:
-> "Always name specific services from the company's known stack: Kafka for messaging, Aurora Postgres for relational data, Redis for caching, EKS for containerised workloads. Do not use generic terms like 'message queue' or 'database'."
+Open `prompts/registry.py`. Find the agent's entry. Edit the prompt and increment the version:
+
+```python
+# Before
+"solution_architect": {
+    "version": "1.0.0",
+    "changelog": "Two-step classify-then-design pipeline ...",
+
+# After
+"solution_architect": {
+    "version": "1.1.0",
+    "changelog": "Add explicit stack-grounding rule: name SQS/Aurora/Redis/EKS by service name",
+```
+
+Add a targeted instruction to the prompt text. Example:
+> "Always name specific services from the company's known stack as provided in context: e.g. Amazon SQS for async job queuing, Aurora Postgres for relational data, Redis for caching, EKS for containerised workloads. Do not use generic terms like 'message queue' or 'database'."
 
 **4. Re-run and compare**
 
 ```bash
+# Generate new outputs + save a new local snapshot
 venv/bin/python -m evals.run_golden_brds && \
-venv/bin/python -m evals.run_phoenix_evals
+venv/bin/python -m evals.run_experiments
+
+# Print before/after score table (no Phoenix required)
+venv/bin/python -m evals.compare_experiments --latest
 ```
 
-Check the new summary table. The previously failing evaluator should now score higher. If scores regressed on another evaluator, that prompt instruction may be conflicting — narrow it.
+The comparison output shows per-agent score deltas and which prompt version changed:
+
+```
+  Prompt versions:
+    solution_architect             1.0.0  →  1.1.0    ← changed
+
+  Agent                        Evaluator          Baseline Candidate    Delta
+  ──────────────────────────────────────────────────────────────────────────
+  solution_architect           critic_score         0.6200    0.8100  +0.1900  ✓
+  solution_architect           output_completeness  0.8500    0.8800  +0.0300  ✓
+  plan_generator               critic_score         0.7200    0.7200  +0.0000  ~
+
+  VERDICT: Scores improved after prompt change(s). Safe to ship.
+```
+
+If scores regressed on another agent, that prompt instruction may be conflicting — narrow it and re-run.
 
 **5. Repeat** until all evaluators are consistently ≥ 0.7.
 
@@ -391,10 +426,12 @@ Check the new summary table. The previously failing evaluator should now score h
 
 **Common prompt fixes by failure type:**
 
+Edit the relevant agent's entry in `prompts/registry.py`, bump the version, and re-run.
+
 | Failure | Prompt fix |
 |---|---|
 | `brd_coverage` < 0.7 | "Enumerate each functional requirement from the BRD and map it to a specific phase deliverable." |
-| `rag_grounding` < 0.7 | "Name specific services from the company tech stack (Kafka, Aurora Postgres, Redis, EKS). Do not use generic terms." |
+| `rag_grounding` < 0.7 | "Name specific services from the company tech stack as provided in context (e.g. Amazon SQS, Aurora Postgres, Redis, EKS). Do not use generic terms." |
 | `options_genuinely_different` < 0.7 | "Each architectural option must differ in fundamental approach (e.g. event-driven vs. batch, serverless vs. containerised). Configuration differences alone do not count." |
 | `feedback_specificity` < 0.7 | "Every feedback point must name the specific phase, component, or deliverable it refers to." |
 | `phase_count_in_range` fail | Add to schema or prompt: "Produce between 3 and 6 phases." |

@@ -39,7 +39,7 @@ A fictional fraud detection and risk decisioning platform serving banks, card is
 
 | Layer | Technologies |
 |---|---|
-| Event streaming | Apache Kafka on MSK + Confluent Schema Registry (Avro) |
+| Async messaging | Amazon SQS (job queue) · SNS · Celery + Redis (background tasks) |
 | Feature store | Tecton (online: ElastiCache Redis · offline: S3 + Spark) |
 | ML inference | FastAPI on EKS (XGBoost/LightGBM in-memory, p99 < 40ms) |
 | Databases | Aurora PostgreSQL · DynamoDB · ElastiCache Redis |
@@ -83,13 +83,17 @@ capstone-project/
 │   ├── pipeline.py                # ChromaDB client — embed + retrieve
 │   ├── seed.py                    # seed knowledge base from sources/
 │   └── sources/                   # 11 Markdown knowledge base files
+├── prompts/
+│   └── registry.py                # versioned prompt store — all agent system prompts live here
 ├── evals/
 │   ├── run_golden_brds.py         # run 4 BRDs through full pipeline, create Phoenix dataset
-│   ├── run_experiments.py         # LLM-as-judge via phoenix.client.Client experiments API
+│   ├── run_experiments.py         # LLM-as-judge + saves local score snapshot tagged with prompt versions
+│   ├── compare_experiments.py     # before/after score diff CLI (no Phoenix required)
 │   ├── run_structural_checks.py   # rule-based checks, no LLM calls
 │   ├── run_phoenix_evals.py       # span diagnostic report
 │   ├── phoenix_evals/
 │   │   └── evaluators.py          # LLM-as-judge prompt templates per agent
+│   ├── results/                   # local score snapshots (experiment_<timestamp>.json)
 │   └── structural/                # per-agent rule-based check modules
 ├── schemas/
 │   └── models.py                  # all Pydantic models + LangGraph GraphState
@@ -159,7 +163,7 @@ cd frontend && npm install && npm run dev
 
 ## Eval harness
 
-Scores all 6 agents against 4 golden Arbor Risk BRDs through two independent paths.
+Scores all agents against 4 golden Arbor Risk BRDs. Prompts are versioned artifacts in `prompts/registry.py` — every eval run is tagged with which prompt version produced the scores, enabling before/after comparison.
 
 ```bash
 # Terminal 1 — start Phoenix (keep running)
@@ -168,10 +172,25 @@ venv/bin/python -m phoenix.server.main serve
 # Terminal 2 — run pipeline + create dataset + run evaluations
 venv/bin/python -m evals.run_golden_brds       # ~2-4 min, creates golden_brd_evals dataset
 venv/bin/python -m evals.run_structural_checks  # rule-based, instant
-venv/bin/python -m evals.run_experiments        # LLM-as-judge, ~20 API calls
+venv/bin/python -m evals.run_experiments        # LLM-as-judge (~20 API calls) + saves local snapshot
 ```
 
-Results appear in Phoenix UI at `http://localhost:6006` → Datasets & Experiments → `golden_brd_evals` → Experiments tab. Each experiment run is versioned — re-run after editing a prompt to compare scores directly.
+Results appear in Phoenix UI at `http://localhost:6006` → Datasets & Experiments → `golden_brd_evals` → Experiments tab. Each run is versioned — re-run after a prompt change and scores appear side-by-side.
+
+**Eval-driven improvement workflow:**
+
+```bash
+# 1. Run baseline
+venv/bin/python -m evals.run_experiments
+
+# 2. Edit prompts/registry.py — change a prompt, bump its version (e.g. "1.0.0" → "1.1.0")
+
+# 3. Re-run
+venv/bin/python -m evals.run_golden_brds && venv/bin/python -m evals.run_experiments
+
+# 4. Compare before/after (no Phoenix required)
+venv/bin/python -m evals.compare_experiments --latest
+```
 
 **Evaluators per agent:**
 

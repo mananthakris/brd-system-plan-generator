@@ -53,7 +53,7 @@ class RAGPipeline:
             model_name=settings.embedding_model,
         )
         self._collection = self._client.get_or_create_collection(
-            name="verdant_knowledge",
+            name="arbor_knowledge",
             embedding_function=self._embed_fn,
             metadata={"hnsw:space": "cosine"},
         )

@@ -15,6 +15,7 @@ from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
 from config import settings
+from prompts.registry import get_prompt
 from rag.pipeline import RAGPipeline
 from schemas.models import AgentOutput, BRDInput, PlanPhase, RAGContext
 
@@ -39,45 +40,8 @@ class _PlanOutput(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Prompts
+# Prompts (see prompts/registry.py — bump version there when editing)
 # ---------------------------------------------------------------------------
-
-_PLAN_SYSTEM = """\
-You are an engineering planning specialist generating a structured project plan for a software feature.
-
-Break the BRD into 3-6 sequential implementation phases. Each phase must have clear, specific objectives
-and verifiable deliverables — not generic labels.
-
-For each phase provide:
-- phase_number: sequential integer starting at 1
-- name: short descriptive label (e.g. "Data Model & Schema Design", "Async Worker Pipeline")
-- objectives: 2-4 specific engineering goals for this phase
-- deliverables: concrete artefacts that mark the phase complete
-  Good: "Aurora migration applied and tested on staging", "POST /v1/score returns job_id < 200ms p99"
-  Bad:  "Implement the feature", "Build backend"
-- duration_weeks: realistic estimate (1-6 per phase); factor in stated team size and constraints
-- dependencies: names of prior phases this phase depends on (empty list for phase 1)
-
-Also provide:
-- project_overview: 2-3 sentences describing the overall implementation approach
-- key_milestones: 3-5 major checkpoints from kick-off to production launch
-
-Rules:
-- Phases must be sequentially ordered with no circular dependencies
-- Do not invent requirements absent from the BRD
-- Respect out-of-scope items — do not create phases for excluded work
-- Total duration should be realistic: a well-resourced 2-engineer team completes 1-2 phases per sprint
-"""
-
-_PLAN_SYSTEM_REVISION = """\
-You are an engineering planning specialist revising a project plan based on quality review feedback.
-
-The Critic Agent reviewed the previous plan and identified these issues:
-{revision_notes}
-
-Address each issue specifically in your revised plan. Do not repeat the same mistakes.
-Otherwise follow the same planning instructions as a fresh plan.
-"""
 
 _PLAN_USER = """\
 --- Company context (team skills, past BRD patterns) ---
@@ -165,9 +129,9 @@ class PlanGeneratorAgent:
         llm = self._llm.with_structured_output(_PlanOutput, include_raw=True)
 
         if revision_notes:
-            system = _PLAN_SYSTEM_REVISION.format(revision_notes=revision_notes)
+            system = get_prompt("plan_generator", "system_revision").format(revision_notes=revision_notes)
         else:
-            system = _PLAN_SYSTEM
+            system = get_prompt("plan_generator")
 
         user_content = _PLAN_USER.format(
             rag_context=_format_rag(rag_ctx),

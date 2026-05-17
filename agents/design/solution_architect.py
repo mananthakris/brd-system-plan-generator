@@ -17,6 +17,7 @@ from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
 from config import settings
+from prompts.registry import get_prompt
 from rag.pipeline import RAGPipeline
 from schemas.models import (
     AgentOutput,
@@ -56,39 +57,8 @@ class _ArchitectureOutput(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Prompts
+# Prompts (see prompts/registry.py — bump version there when editing)
 # ---------------------------------------------------------------------------
-
-_CLASSIFY_SYSTEM = """\
-You are a Solution Architect reviewing an engineering requirements document.
-Classify the type of engineering problem it describes using exactly one of the six types below.
-
-Problem type definitions and the key question for each:
-
-- greenfield:   Is this an entirely new standalone product, service, or platform with no prior codebase?
-                Use only when there is nothing existing to build on at all.
-
-- new_feature:  Is this a net-new capability being added to an existing product for the FIRST TIME?
-                The team, platform, and infrastructure already exist, but this specific functionality
-                has never been built. There is nothing to "improve" — it doesn't exist yet.
-                Use this when the objective is to "build" or "create" something new within an existing system.
-
-- migration:    Is the primary goal moving from one technology, platform, or data store to another?
-
-- integration:  Is the primary goal connecting two or more existing systems via APIs or event streams?
-
-- poc:          Is this explicitly scoped as a time-boxed spike or proof-of-concept to validate a hypothesis?
-                The document must state or strongly imply it is NOT production-ready by design.
-
-- enhancement:  Is this improving, optimising, or extending functionality that ALREADY EXISTS in the codebase?
-                Only use this if a working version of the feature is already shipped and the goal is to make it better.
-
-Critical distinction — new_feature vs enhancement:
-  enhancement = the feature exists today; the BRD asks to improve it
-  new_feature  = the feature does not exist today; the BRD asks to build it for the first time
-
-Return your classification and a one-sentence rationale that cites specific evidence from the document.
-"""
 
 _CLASSIFY_USER = """\
 Title: {title}
@@ -101,52 +71,6 @@ Constraints:
 
 Out of scope:
 {out_of_scope}
-"""
-
-_DESIGN_SYSTEM = """\
-You are a Solution Architect producing a decision-ready system design for a fraud detection \
-and risk decisioning platform. This BRD has been classified as a **{problem_type}** problem.
-
-Your task is to produce 2-3 COMPETING architectural options, then recommend one.
-
-Each option must represent a genuinely different approach — not minor variations of the same design.
-Meaningful axes of difference include:
-- Synchronous vs. asynchronous processing
-- Managed cloud service vs. self-hosted
-- Single new service vs. extension of an existing service
-- Batch-oriented vs. streaming-oriented
-- Monolith module vs. independent microservice
-
-For each option provide:
-- option_id: "A", "B", or "C"
-- name: a short descriptive label (e.g. "Streaming-first Kafka + Tecton pipeline")
-- description: 1-3 sentences summarising the approach
-- high_level_components: concrete named services or modules (not generic labels like "backend")
-- data_flow: a clear narrative of how data enters, transforms, and exits
-- integration_points: specific external systems, internal services, or APIs touched
-- constraints_addressed: for each BRD constraint, one entry explaining how this option satisfies it
-- trade_offs: concise narrative of what this option gains and what it gives up
-- estimated_complexity: "low" | "medium" | "high"
-
-Then recommend one option and provide a recommendation_rationale that explains:
-- Why this option best fits the BRD constraints and success criteria
-- How it aligns with the company's existing stack and team skills
-- What risks it avoids compared to the alternatives
-
-Rules:
-- Ground every component name in the company's known services and technology stack (see context below)
-- Do not recommend the most complex option by default — favour the simplest option that satisfies requirements
-- If a BRD constraint prohibits a technology, respect it in every option
-- Do not introduce technologies the team has no experience with unless no alternative exists
-- The recommended_option_id must match one of the option_ids you produce
-
-Guidelines by problem type:
-- greenfield:   propose full system decomposition from scratch; favour proven patterns
-- new_feature:  design the new module end-to-end; identify where it plugs into the existing platform
-- migration:    identify cutover strategy (strangler fig, big-bang, parallel-run) and data migration approach
-- integration:  focus on data contracts, failure modes, retry/idempotency, and observability at boundaries
-- poc:          keep options minimal; call out what is simplified vs. production design
-- enhancement:  extend existing architecture with minimal footprint; flag cross-cutting impacts
 """
 
 _DESIGN_USER = """\
@@ -263,7 +187,7 @@ class SolutionArchitectAgent:
         )
 
         result = llm.invoke([
-            {"role": "system", "content": _CLASSIFY_SYSTEM},
+            {"role": "system", "content": get_prompt("solution_architect", "classify_system")},
             {"role": "user", "content": user_content},
         ])
 
@@ -279,7 +203,7 @@ class SolutionArchitectAgent:
     ) -> tuple[_ArchitectureOutput, int | None]:
         llm = self._llm.with_structured_output(_ArchitectureOutput, include_raw=True)
 
-        system = _DESIGN_SYSTEM.format(problem_type=classification.problem_type)
+        system = get_prompt("solution_architect", "design_system").format(problem_type=classification.problem_type)
         user_content = _DESIGN_USER.format(
             rag_context=_format_rag(rag_context),
             brd_sections=_format_brd_sections(brd),

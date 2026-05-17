@@ -119,7 +119,7 @@ def run(
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Verdant Intelligence — BRD to Engineering Plan")
+    parser = argparse.ArgumentParser(description="Arbor Risk — BRD to Engineering Plan")
     source_group = parser.add_mutually_exclusive_group(required=True)
     source_group.add_argument("--brd-file", help="Path to BRD file (.pdf, .docx, .md, .txt)")
     source_group.add_argument("--brd-text", help="Raw BRD text (inline)")
