@@ -177,19 +177,29 @@ venv/bin/python -m evals.run_experiments        # LLM-as-judge (~20 API calls) +
 
 Results appear in Phoenix UI at `http://localhost:6006` → Datasets & Experiments → `golden_brd_evals` → Experiments tab. Each run is versioned — re-run after a prompt change and scores appear side-by-side.
 
+`run_experiments.py` also saves every run to `evals/results/experiment_<timestamp>.json` — `scores` (critic_score, output_completeness, and `llm_quality` averaged per agent) plus an `examples` array with the LLM judge's per-example score *and* explanation. This is the fast local loop; save a Phoenix UI screenshot only when you need one for a write-up.
+
 **Eval-driven improvement workflow:**
 
 ```bash
 # 1. Run baseline
 venv/bin/python -m evals.run_experiments
 
-# 2. Edit prompts/registry.py — change a prompt, bump its version (e.g. "1.0.0" → "1.1.0")
+# 2. Edit prompts/registry.py (or the agent file) — change a prompt, bump its version (e.g. "1.0.0" → "1.1.0")
 
 # 3. Re-run
 venv/bin/python -m evals.run_golden_brds && venv/bin/python -m evals.run_experiments
 
-# 4. Compare before/after (no Phoenix required)
-venv/bin/python -m evals.compare_experiments --latest
+# 4. Compare before/after in the terminal (no Phoenix UI required)
+venv/bin/python -m evals.compare_experiments --latest                # score table, all evaluators incl. llm_quality
+venv/bin/python -m evals.compare_experiments --latest --explanations # + judge's reasoning per example
+
+# or diff two specific snapshots by filename
+venv/bin/python -m evals.compare_experiments --baseline experiment_<old>.json --candidate experiment_<new>.json
+
+# or inspect a snapshot directly
+jq .scores evals/results/experiment_<timestamp>.json
+jq '.examples[] | select(.agent_name=="schedule_estimator" and .evaluator=="llm_quality")' evals/results/experiment_<timestamp>.json
 ```
 
 **Evaluators per agent:**

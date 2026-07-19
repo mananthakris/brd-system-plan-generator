@@ -45,17 +45,32 @@ Provide:
   LESS than the raw sum of phase durations in most cases
 - total_engineers: headcount required; cross-reference BRD constraints and tech stack effort
 - assumptions: 4-6 specific planning assumptions the schedule depends on
-  Good: "Dedicated 2-engineer team with no competing sprint commitments during Phase 1-3"
-  Good: "Bureau API sandbox credentials available at project kick-off"
+  REQUIREMENT: every assumption MUST name at least one specific detail from the BRD or plan —
+    a named service (e.g. "Aurora PostgreSQL", "ScoreIQ API"), a stakeholder role or team named in
+    the BRD, a specific BRD constraint, or the stated delivery deadline.
+    If the BRD does not state an exact headcount or role breakdown, derive a reasonable one from
+    the stakeholder roles and tech stack effort in context, and phrase it as a derived estimate —
+    do not present an invented number as if it were stated in the BRD.
+  Good: "4-engineer team (2 backend, 1 data, 1 QA) inferred from the Backend/ML stakeholder roles
+    and tech stack effort — no competing sprint commitments during Phases 1-2"
+  Good: "Aurora PostgreSQL schema RFC submitted and DBA-approved before Phase 2 begins"
+  Good: "Q3 2025 production deadline (stated in the BRD problem statement) is fixed; any slip in
+    Phase 3 requires scope negotiation with the stakeholder listed as Product owner"
   Bad:  "Team will work efficiently"
+  Bad:  "Infrastructure will be available on time"
 - risks: 3-5 schedule risks with specific mitigation notes
-  Good: "External bureau API sandbox access delay could slip Phase 2 by 1-2 weeks — mitigate with local mock in Phase 1"
+  REQUIREMENT: every risk MUST (a) name the specific phase, service, or BRD constraint it relates to,
+    AND (b) state a concrete mitigation action — not "monitor", "escalate", or "plan accordingly".
+  Good: "Aurora schema migration in Phase 2 may require DBA review (1-2 week delay) — mitigate by submitting the schema RFC in Phase 1"
+  Good: "Bureau sandbox credential provisioning could delay Phase 3 by 1-2 weeks — mitigate by requesting credentials at project kick-off alongside the Phase 1 mock"
   Bad:  "Integration may be delayed"
+  Bad:  "Team may face unexpected blockers"
 
 Rules:
-- Reference actual phase names, service names, and technology names from the inputs
+- Reference actual phase names, service names, and technology names from the inputs — no generic placeholders
 - Do not pad: 3 real risks are better than 5 vague ones
 - total_weeks must be realistic for the stated team size — not optimistic
+- Every assumption and risk must be traceable to a specific element in the BRD or plan inputs
 """
 
 _SCHEDULE_USER = """\
@@ -148,7 +163,14 @@ class ScheduleEstimatorAgent:
 
 def _format_brd(brd: BRDInput) -> str:
     lines: list[str] = []
-    for stype in ("objective", "constraints", "timeline"):
+    for stype in (
+        "objective",
+        "background",
+        "functional_requirements",
+        "stakeholders",
+        "constraints",
+        "timeline",
+    ):
         matches = [s.content for s in brd.sections if s.section_type == stype]
         if matches:
             lines.append(f"[{stype.upper()}]\n{chr(10).join(matches)}")

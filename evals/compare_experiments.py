@@ -65,7 +65,37 @@ def _marker(delta: float) -> str:
     return "~"
 
 
-def compare(baseline: dict, candidate: dict) -> None:
+def _print_explanations(candidate: dict, baseline: dict | None = None) -> None:
+    """Print judge score + explanation per example, grouped by agent — the terminal
+    equivalent of expanding a cell in the Phoenix UI Experiments tab."""
+    c_examples = candidate.get("examples")
+    if not c_examples:
+        print("  (this snapshot has no per-example detail — re-run evals.run_experiments to regenerate it)")
+        return
+
+    b_by_key: dict[tuple[str, str, str], dict] = {}
+    if baseline:
+        for row in baseline.get("examples", []):
+            b_by_key[(row["agent_name"], row["brd_filename"], row["evaluator"])] = row
+
+    by_agent: dict[str, list[dict]] = {}
+    for row in c_examples:
+        by_agent.setdefault(row["agent_name"], []).append(row)
+
+    for agent in sorted(by_agent):
+        print(f"\n  --- {agent} ---")
+        for row in sorted(by_agent[agent], key=lambda r: (r["brd_filename"], r["evaluator"])):
+            if row["score"] is None:
+                continue
+            key = (row["agent_name"], row["brd_filename"], row["evaluator"])
+            b_row = b_by_key.get(key)
+            b_tag = f"  (baseline: {b_row['score']:.2f})" if b_row and b_row["score"] is not None else ""
+            print(f"    [{row['evaluator']}] {row['brd_filename']}  score={row['score']:.2f}{b_tag}")
+            if row.get("explanation"):
+                print(f"      → {row['explanation']}")
+
+
+def compare(baseline: dict, candidate: dict, show_explanations: bool = False) -> None:
     b_name = baseline["experiment_name"]
     c_name = candidate["experiment_name"]
     b_ts = baseline["timestamp"][:16]
@@ -151,8 +181,14 @@ def compare(baseline: dict, candidate: dict) -> None:
     else:
         print("  VERDICT: No prompt version changes detected. This comparison shows run-to-run variance.")
 
-    print(f"\n  LLM quality scores (llm_quality evaluator): see Phoenix UI → {RESULTS_DIR.parent.parent.name}")
-    print("  → Datasets & Experiments → golden_brd_evals → Experiments tab")
+    if show_explanations:
+        print()
+        print("=" * 80)
+        print("  JUDGE EXPLANATIONS (candidate run, baseline score shown where available)")
+        print("=" * 80)
+        _print_explanations(candidate, baseline)
+    else:
+        print("\n  (add --explanations to print the judge's reasoning per example — no screenshots needed)")
     print()
 
 
@@ -164,6 +200,10 @@ def main() -> None:
     group.add_argument("--latest", action="store_true", help="Compare the two most recent snapshots")
     group.add_argument("--baseline", metavar="FILE", help="Path or filename of the baseline snapshot")
     parser.add_argument("--candidate", metavar="FILE", help="Path or filename of the candidate snapshot (required with --baseline)")
+    parser.add_argument(
+        "--explanations", action="store_true",
+        help="Print each example's judge score + explanation (the llm_quality evaluator), grouped by agent",
+    )
     args = parser.parse_args()
 
     if args.latest:
@@ -177,7 +217,7 @@ def main() -> None:
         baseline = _load(args.baseline)
         candidate = _load(args.candidate)
 
-    compare(baseline, candidate)
+    compare(baseline, candidate, show_explanations=args.explanations)
 
 
 if __name__ == "__main__":

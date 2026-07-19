@@ -33,6 +33,12 @@ from config import settings
 from prompts.registry import get_all_versions
 
 DATASET_NAME = "golden_brd_evals"
+RAG_SOURCES_DIR = Path(__file__).parent.parent / "rag" / "sources"
+
+# Agents whose rubric asks the judge to verify "reuses Arbor's existing services" —
+# these need the actual stack doc in context, or the judge is just guessing.
+_STACK_GROUNDED_AGENTS = {"tech_stack_recommender", "solution_architect"}
+_ARBOR_STACK_CONTEXT = (RAG_SOURCES_DIR / "current_tools_and_stack.md").read_text()
 PHOENIX_URL = "http://localhost:6006"
 RESULTS_DIR = Path(__file__).parent / "results"
 
@@ -93,8 +99,22 @@ _AGENT_RUBRIC: dict[str, str] = {
         "(2) phases are in logical order, (3) no out-of-scope items are included."
     ),
     "solution_architect": (
-        "Check: (1) problem_type classification matches the BRD, "
-        "(2) options are genuinely different architectural approaches (not just config variants), "
+        "The agent MUST classify problem_type as exactly one of these 6 fixed categories — there is "
+        "no 'compliance' or 'regulatory' category, so a compliance-driven BRD is correctly classified "
+        "as whichever of these 6 best fits, and that is NOT a misclassification: "
+        "greenfield (net-new platform, nothing existing to build on), "
+        "new_feature (first-time capability on an existing platform), "
+        "migration (moving between technologies/stores), "
+        "integration (connecting existing systems via APIs/events), "
+        "poc (explicitly time-boxed spike, not production-ready), "
+        "enhancement (improving a capability that is already shipped and working). "
+        "Check: (1) the chosen category is a defensible fit among these 6 given the BRD's own framing "
+        "of what already exists vs. what is being built for the first time — do not penalize the "
+        "classification just because a more specific label (e.g. 'compliance remediation') would also "
+        "describe the BRD; (2) options are genuinely different in their critical-path architecture — "
+        "if a hard latency/SLA constraint forces the same processing model everywhere, the options must "
+        "still diverge on deployment unit AND data pattern, not just differ in an optional background/admin "
+        "workflow while sharing an identical request-time design; "
         "(3) components are named specifically using services from the RAG context — not generic terms "
         "like 'message queue' or 'database' (e.g. should say 'Amazon SQS', 'Aurora Postgres', not just 'queue')."
     ),
@@ -119,13 +139,25 @@ def llm_quality(input: Any, output: Any) -> tuple[float, str]:
     client = openai.OpenAI(api_key=settings.openai_api_key)
 
     agent_name = (input or {}).get("agent_name", "unknown")
-    brd_text = (input or {}).get("brd_text", "")[:2500]
-    output_str = json.dumps(output, default=str)[:2500] if output else "empty"
+    # Golden BRDs run ≤ ~5.4K chars and agent outputs run up to ~14K chars (plan_generator,
+    # solution_architect, schedule_estimator all regularly exceed the old 2500-char cap) —
+    # a flat 2500-char truncation was silently hiding the Functional Requirements section
+    # for 2 of 4 BRDs and most of every verbose agent's output from the judge, which then
+    # penalized the agent for "omitting" or "truncating" content it was never shown.
+    brd_text = (input or {}).get("brd_text", "")[:8000]
+    output_str = json.dumps(output, default=str)[:16000] if output else "empty"
     rubric = _AGENT_RUBRIC.get(agent_name, "Score on specificity, completeness, and relevance to the BRD.")
+
+    stack_context = (
+        f"Arbor Risk's actual existing tech stack (ground truth — do not guess; anything listed "
+        f"here already exists and reusing it is NOT introducing a new service):\n{_ARBOR_STACK_CONTEXT}\n\n"
+        if agent_name in _STACK_GROUNDED_AGENTS else ""
+    )
 
     prompt = (
         f"You are evaluating the '{agent_name}' agent in a BRD-to-engineering-plan pipeline.\n\n"
         f"Rubric: {rubric}\n\n"
+        f"{stack_context}"
         f"BRD excerpt:\n{brd_text}\n\n"
         f"Agent output:\n{output_str}\n\n"
         f"Score 0.0–1.0 based on the rubric above. "
@@ -147,42 +179,69 @@ def llm_quality(input: Any, output: Any) -> tuple[float, str]:
 
 
 # ---------------------------------------------------------------------------
-# Local score snapshot (rule-based only, no LLM calls — used by compare_experiments.py)
+# Local score snapshot — pulls ALL evaluator results (including the LLM-judge
+# llm_quality score + explanation) out of the RanExperiment so they can be
+# diffed from the terminal instead of read off the Phoenix UI.
 # ---------------------------------------------------------------------------
 
-def _compute_local_scores(examples: list) -> dict[str, dict[str, float]]:
-    """Average rule-based scores per agent across all examples (no LLM calls)."""
+def _extract_examples(ran_experiment: dict, examples_list: list) -> list[dict]:
+    """One row per (example × evaluator): agent, BRD, evaluator name, score, explanation."""
+    example_by_id = {ex["id"]: ex for ex in examples_list}
+    example_id_by_run_id = {
+        run["id"]: run["dataset_example_id"] for run in ran_experiment["task_runs"]
+    }
+
+    rows = []
+    for ev_run in ran_experiment["evaluation_runs"]:
+        example_id = example_id_by_run_id.get(ev_run.experiment_run_id)
+        example = example_by_id.get(example_id)
+        if example is None:
+            continue
+        inp = example.get("input") or {}
+        result = ev_run.result or {}
+        if isinstance(result, list):
+            result = result[0] if result else {}
+        # Our evaluators return a 2-tuple (score, text). Phoenix's experiment runner
+        # maps a 2-tuple to (score, label), not (score, explanation) — so the judge's
+        # reasoning actually lands in "label". Prefer "explanation" if ever present,
+        # fall back to "label" so the real text isn't silently dropped as None.
+        rows.append({
+            "agent_name": inp.get("agent_name", "unknown"),
+            "brd_filename": inp.get("brd_filename", "unknown"),
+            "evaluator": ev_run.name,
+            "score": result.get("score"),
+            "explanation": result.get("explanation") or result.get("label"),
+        })
+    return rows
+
+
+def _aggregate_scores(example_rows: list[dict]) -> dict[str, dict[str, float]]:
+    """Average each evaluator's score per agent across all BRDs."""
     scores_by_agent: dict[str, dict[str, list[float]]] = {}
-    for example in examples:
-        inp = getattr(example, "input", None) or {}
-        out = getattr(example, "output", None)
-        meta = getattr(example, "metadata", None)
-        agent_name = inp.get("agent_name", "unknown") if isinstance(inp, dict) else "unknown"
-        cs = critic_score(meta)[0]
-        oc = output_completeness(out)[0]
-        if agent_name not in scores_by_agent:
-            scores_by_agent[agent_name] = {"critic_score": [], "output_completeness": []}
-        scores_by_agent[agent_name]["critic_score"].append(cs)
-        scores_by_agent[agent_name]["output_completeness"].append(oc)
+    for row in example_rows:
+        if row["score"] is None:
+            continue
+        agent_scores = scores_by_agent.setdefault(row["agent_name"], {})
+        agent_scores.setdefault(row["evaluator"], []).append(row["score"])
     return {
-        agent: {k: round(sum(v) / len(v), 4) for k, v in evals.items()}
+        agent: {ev: round(sum(vals) / len(vals), 4) for ev, vals in evals.items()}
         for agent, evals in scores_by_agent.items()
     }
 
 
-def _save_local_snapshot(scores: dict, experiment_name: str) -> Path:
-    """Save a score snapshot to evals/results/ tagged with the current prompt versions."""
+def _save_local_snapshot(
+    ran_experiment: dict, examples_list: list, experiment_name: str
+) -> Path:
+    """Save a full score snapshot (incl. llm_quality + judge explanations) to evals/results/."""
     RESULTS_DIR.mkdir(exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    example_rows = _extract_examples(ran_experiment, examples_list)
     snapshot = {
         "experiment_name": experiment_name,
         "timestamp": datetime.datetime.now().isoformat(),
         "prompt_versions": get_all_versions(),
-        "note": (
-            "Rule-based scores (critic_score, output_completeness) averaged per agent across all BRDs. "
-            "LLM quality scores are in the Phoenix UI Experiments tab."
-        ),
-        "scores": scores,
+        "scores": _aggregate_scores(example_rows),
+        "examples": example_rows,
     }
     path = RESULTS_DIR / f"experiment_{timestamp}.json"
     path.write_text(json.dumps(snapshot, indent=2))
@@ -211,19 +270,13 @@ def main() -> None:
     example_count = len(examples_list)
     print(f"Loaded {example_count} examples (4 BRDs × 5 agents).")
 
-    print("Computing local rule-based scores (no LLM calls)...")
-    local_scores = _compute_local_scores(examples_list)
-    snapshot_path = _save_local_snapshot(local_scores, "golden-brd-llm-judge")
-    print(f"Local snapshot saved → {snapshot_path}")
-    print(f"  (use venv/bin/python -m evals.compare_experiments to diff two snapshots)\n")
-
     prompt_versions = get_all_versions()
     version_tag = " | ".join(f"{a}@{v}" for a, v in sorted(prompt_versions.items()))
 
     print(f"Running LLM-judge experiment with model '{settings.fast_model}'...")
     print("This makes one LLM call per example → ~20 calls total.\n")
 
-    client.experiments.run_experiment(
+    ran_experiment = client.experiments.run_experiment(
         dataset=dataset,
         task=task,
         evaluators=[critic_score, output_completeness, llm_quality],
@@ -235,13 +288,17 @@ def main() -> None:
         ),
     )
 
+    print("\nSaving local snapshot (critic_score, output_completeness, llm_quality + judge explanations)...")
+    snapshot_path = _save_local_snapshot(ran_experiment, examples_list, "golden-brd-llm-judge")
+    print(f"Snapshot saved → {snapshot_path}")
+
     print(f"\nView results: {PHOENIX_URL} → Datasets & Experiments → {DATASET_NAME} → Experiments tab")
     print("Each agent × BRD row shows critic_score, completeness, and llm_quality scores.")
     print("\nImprovement cycle:")
-    print("  1. Find low llm_quality rows → read the judge explanation")
-    print("  2. Edit prompt in prompts/registry.py and bump the version")
+    print("  1. Compare in the terminal: venv/bin/python -m evals.compare_experiments --latest")
+    print("     (add --explanations to print judge reasoning per example, no screenshots needed)")
+    print("  2. Edit prompt in prompts/registry.py (or the agent file) and bump the version")
     print("  3. Re-run: venv/bin/python -m evals.run_golden_brds && venv/bin/python -m evals.run_experiments")
-    print("  4. Compare: venv/bin/python -m evals.compare_experiments --baseline <old.json> --candidate <new.json>")
 
 
 if __name__ == "__main__":
